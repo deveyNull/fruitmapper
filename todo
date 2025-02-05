@@ -1,0 +1,11 @@
+Admin upload:
+<!-- {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_upload') }}"
+                           class="text-gray-900 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md hover:bg-gray-50">
+                            Admin
+                        </a>
+                        {% endif %} -->
+
+
+No concept of is user logged in? 
+

@@ -1,0 +1,15 @@
+name,fruit_type,country_of_origin,date_picked
+Orange,citrus,Spain,2024-01-15
+Lemon,citrus,Italy,2024-01-20
+Grapefruit,citrus,United States,2024-01-18
+Blueberry,berry,United States,2024-01-25
+Strawberry,berry,Mexico,2024-01-22
+Raspberry,berry,Chile,2024-01-21
+Peach,stone fruit,Spain,2024-01-10
+Plum,stone fruit,France,2024-01-12
+Mango,tropical,India,2024-01-05
+Pineapple,tropical,Costa Rica,2024-01-08
+Apple,pome,New Zealand,2024-01-15
+Pear,pome,Argentina,2024-01-17
+Cantaloupe,melon,Spain,2024-01-20
+Honeydew,melon,Mexico,2024-01-22
