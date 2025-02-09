@@ -18,31 +18,32 @@
                             Fruit Recipe Platform
                         </a>
                     </div>
-                    {% if request.user and not request.user.is_anonymous %}
+                    {% if request.user and request.user.is_authenticated %}
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="/datasets" 
-                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/datasets' %}border-indigo-500{% else %}border-transparent{% endif %}">
-                            Datasets
-                        </a>
-                        <a href="/fruit-types"
-                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
-                            Fruit Types
-                        </a>
-                        <a href="/recipes"
+                        <a href="{{ url_for('list_recipes') }}" 
                            class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/recipes' %}border-indigo-500{% else %}border-transparent{% endif %}">
                             Recipes
                         </a>
-                        <a href="/groups"
+                        <a href="{{ url_for('list_fruit_types') }}"
+                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
+                            Fruit Types
+                        </a>
+                        <a href="{{ url_for('list_fruits') }}"
+                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruits' %}border-indigo-500{% else %}border-transparent{% endif %}">
+                            Fruits
+                        </a>
+                        <a href="{{ url_for('list_groups') }}"
                            class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/groups' %}border-indigo-500{% else %}border-transparent{% endif %}">
                             Groups
                         </a>
                     </div>
                     {% endif %}
+                    
                 </div>
 
                 <!-- User menu -->
                 <div class="flex items-center">
-                    {% if request.user and not request.user.is_anonymous %}
+                    {% if request.user and request.user.is_authenticated %}
                         {% if request.user.is_admin %}
                         <a href="/admin/upload"
                            class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
@@ -76,17 +77,15 @@
     </nav>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-                    <div class="rounded-md p-4 {% if category == 'error' %}bg-red-50 text-red-800{% else %}bg-green-50 text-green-800{% endif %}">
-                        <p class="text-sm font-medium">{{ message }}</p>
-                    </div>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                <div class="rounded-md p-4 {% if message.category == 'error' %}bg-red-50 text-red-800{% else %}bg-green-50 text-green-800{% endif %}">
+                    <p class="text-sm font-medium">{{ message.message }}</p>
                 </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+            </div>
+        {% endfor %}
+    {% endif %}
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -7,32 +7,27 @@ import app.crud as crud
 import app.schemas as schemas
 from app.dependencies import get_current_user, get_current_admin_user
 
-router = APIRouter(prefix="/recipes", tags=["recipes"])
+router = APIRouter()  # Remove the prefix, it's handled in main.py
 
 @router.get("/", response_model=schemas.RecipeList)
 async def list_recipes(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
     fruit_type_id: Optional[int] = None,
-    max_prep_time: Optional[int] = None,
-    current_user: schemas.UserResponse = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    List all recipes with optional filtering.
-    - search: Search in name and description
-    - fruit_type_id: Filter by fruit type
-    - max_prep_time: Filter by maximum preparation time in minutes
-    """
+    """List all recipes with optional filtering."""
     return crud.get_recipes(
         db,
         skip=skip,
         limit=limit,
         search=search,
-        fruit_type_id=fruit_type_id,
-        max_prep_time=max_prep_time
+        fruit_type_id=fruit_type_id
     )
+
 
 @router.post("/", response_model=schemas.RecipeResponse)
 async def create_recipe(

@@ -76,8 +76,8 @@ def load_recipes(filename):
 def create_admin_user():
     """Create default admin user"""
     admin = User(
-        username='admin',
-        email='admin@example.com',
+        username='admin3',
+        email='admin3@example.com',
         password_hash=bcrypt.hash('admin123'),  # Change in production!
         is_admin=True
     )
@@ -90,9 +90,9 @@ def init_db():
     create_admin_user()
     
     # Load sample data
-    load_fruit_types('sample_data/fruit_types.csv')
-    load_fruits('sample_data/fruits.csv')
-    load_recipes('sample_data/recipes.csv')
+    load_fruit_types('./sample_data/fruit_types.csv')
+    load_fruits('./sample_data/fruits.csv')
+    load_recipes('./sample_data/recipes.csv')
 
 if __name__ == '__main__':
     init_db()

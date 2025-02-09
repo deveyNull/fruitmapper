@@ -9,9 +9,7 @@ import json
 
 from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter
 from passlib.hash import bcrypt
-
 from app import schemas
-from sqlalchemy.orm import Session
 
 # User operations
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -24,7 +22,6 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
 def create_user(db: Session, user: schemas.UserCreate) -> User:
-    # Check if username or email already exists
     if get_user_by_username(db, user.username):
         raise HTTPException(400, "Username already registered")
     if get_user_by_email(db, user.email):
@@ -82,13 +79,17 @@ def get_fruit_types(
         search = f"%{search}%"
         query = query.filter(FruitType.name.ilike(search) | 
                            FruitType.description.ilike(search))
-    total = db.query(FruitType).count()
-    items = db.query(FruitType).offset(skip).limit(limit).all()
+    
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    pages = (total + limit - 1) // limit
+
     return schemas.FruitTypeList(
-        items=items,
+        items=[schemas.FruitTypeResponse.model_validate(ft) for ft in items],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
+        size=limit,
+        pages=pages
     )
 
 def create_fruit_type(db: Session, fruit_type: schemas.FruitTypeCreate) -> FruitType:
@@ -100,28 +101,6 @@ def create_fruit_type(db: Session, fruit_type: schemas.FruitTypeCreate) -> Fruit
     db.commit()
     db.refresh(db_fruit_type)
     return db_fruit_type
-
-def delete_fruit_type(db: Session, fruit_type_id: int) -> bool:
-    """Delete a fruit type if it has no associated fruits or recipes."""
-    db_fruit_type = get_fruit_type(db, fruit_type_id)
-    if db_fruit_type:
-        db.delete(db_fruit_type)
-        db.commit()
-        return True
-    return False
-
-def get_fruits_by_type(
-    db: Session,
-    fruit_type_id: int,
-    skip: int = 0,
-    limit: int = 100
-) -> List[Fruit]:
-    """Get all fruits of a specific type."""
-    return (db.query(Fruit)
-            .filter(Fruit.fruit_type_id == fruit_type_id)
-            .offset(skip)
-            .limit(limit)
-            .all())
 
 def update_fruit_type(
     db: Session,
@@ -139,6 +118,14 @@ def update_fruit_type(
     db.refresh(db_fruit_type)
     return db_fruit_type
 
+def delete_fruit_type(db: Session, fruit_type_id: int) -> bool:
+    db_fruit_type = get_fruit_type(db, fruit_type_id)
+    if db_fruit_type:
+        db.delete(db_fruit_type)
+        db.commit()
+        return True
+    return False
+
 # Fruit operations
 def get_fruit(db: Session, fruit_id: int) -> Optional[Fruit]:
     return db.query(Fruit).filter(Fruit.id == fruit_id).first()
@@ -154,16 +141,30 @@ def get_fruits(
         query = query.filter(Fruit.fruit_type_id == fruit_type_id)
     
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    fruits = query.offset(skip).limit(limit).all()
+    pages = (total + limit - 1) // limit
+
     return schemas.FruitList(
-        items=items,
+        items=[schemas.FruitResponse.model_validate(f) for f in fruits],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
+        size=limit,
+        pages=pages
     )
 
+def get_fruits_by_type(
+    db: Session,
+    fruit_type_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Fruit]:
+    return (db.query(Fruit)
+            .filter(Fruit.fruit_type_id == fruit_type_id)
+            .offset(skip)
+            .limit(limit)
+            .all())
+
 def create_fruit(db: Session, fruit: schemas.FruitCreate) -> Fruit:
-    # Validate fruit type exists
     if not get_fruit_type(db, fruit.fruit_type_id):
         raise HTTPException(400, "Fruit type not found")
     
@@ -193,72 +194,13 @@ def update_fruit(
     db.refresh(db_fruit)
     return db_fruit
 
-# Recipe operations
-def get_recipe(db: Session, recipe_id: int) -> Optional[Recipe]:
-    return db.query(Recipe).filter(Recipe.id == recipe_id).first()
-
-def get_recipes(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100,
-    fruit_type_id: Optional[int] = None
-) -> schemas.RecipeList:
-    query = db.query(Recipe)
-    if fruit_type_id:
-        query = query.filter(Recipe.fruit_types.any(id=fruit_type_id))
-    
-    total = query.count()
-    items = query.offset(skip).limit(limit).all()
-    return schemas.RecipeList(
-        items=items,
-        total=total,
-        page=skip // limit + 1,
-        page_size=limit
-    )
-
-def create_recipe(db: Session, recipe: schemas.RecipeCreate) -> Recipe:
-    # Validate fruit types exist
-    fruit_types = db.query(FruitType).filter(FruitType.id.in_(recipe.fruit_type_ids)).all()
-    if len(fruit_types) != len(recipe.fruit_type_ids):
-        raise HTTPException(400, "One or more fruit types not found")
-    
-    db_recipe = Recipe(
-        name=recipe.name,
-        description=recipe.description,
-        instructions=recipe.instructions,
-        preparation_time=recipe.preparation_time,
-        fruit_types=fruit_types
-    )
-    db.add(db_recipe)
-    db.commit()
-    db.refresh(db_recipe)
-    return db_recipe
-
-def update_recipe(
-    db: Session,
-    recipe_id: int,
-    recipe_update: schemas.RecipeUpdate
-) -> Recipe:
-    db_recipe = get_recipe(db, recipe_id)
-    if not db_recipe:
-        raise HTTPException(404, "Recipe not found")
-    
-    update_data = recipe_update.dict(exclude_unset=True)
-    if 'fruit_type_ids' in update_data:
-        fruit_types = db.query(FruitType).filter(
-            FruitType.id.in_(update_data['fruit_type_ids'])
-        ).all()
-        if len(fruit_types) != len(update_data['fruit_type_ids']):
-            raise HTTPException(400, "One or more fruit types not found")
-        db_recipe.fruit_types = fruit_types
-        del update_data['fruit_type_ids']
-    
-    for field, value in update_data.items():
-        setattr(db_recipe, field, value)
-    
-    db.commit()
-    db.refresh(db_recipe)
-    return db_recipe
+def delete_fruit(db: Session, fruit_id: int) -> bool:
+    db_fruit = get_fruit(db, fruit_id)
+    if db_fruit:
+        db.delete(db_fruit)
+        db.commit()
+        return True
+    return False
 
 # Group operations
 def get_group(db: Session, group_id: int) -> Optional[Group]:
@@ -275,12 +217,15 @@ def get_groups(
         query = query.filter(Group.members.any(id=user_id))
     
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    groups = query.offset(skip).limit(limit).all()
+    pages = (total + limit - 1) // limit
+
     return schemas.GroupList(
-        items=items,
+        items=[schemas.GroupResponse.model_validate(g) for g in groups],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
+        size=limit,
+        pages=pages
     )
 
 def create_group(db: Session, group: schemas.GroupCreate, creator_id: int) -> Group:
@@ -310,6 +255,7 @@ def update_group(
     db.commit()
     db.refresh(db_group)
     return db_group
+
 
 def manage_group_members(
     db: Session,
@@ -418,3 +364,25 @@ def update_filter(
     db.commit()
     db.refresh(db_filter)
     return db_filter
+
+
+def get_recipe_count(db: Session) -> int:
+    print("Querying recipe count...")  # Debug output
+    count = db.query(Recipe).count()
+    print(f"Found {count} recipes")  # Debug output
+    return count
+
+def get_fruit_type_count(db: Session) -> int:
+    print("Querying fruit type count...")  # Debug output
+    count = db.query(FruitType).count()
+    print(f"Found {count} fruit types")  # Debug output
+    return count
+
+def get_filter_count(db: Session, username: str) -> int:
+    print(f"Querying filter count for user {username}...")  # Debug output
+    user = get_user_by_username(db, username)
+    if not user:
+        return 0
+    count = db.query(SavedFilter).filter_by(user_id=user.id).count()
+    print(f"Found {count} filters")  # Debug output
+    return count

@@ -10,6 +10,8 @@ from dependencies import get_current_user, get_current_admin_user
 
 # Initialize routers
 fruit_router = APIRouter(prefix="/fruits", tags=["fruits"])
+fruit_type_router = APIRouter(prefix="/fruit-types", tags=["fruit-types"])
+
 recipe_router = APIRouter(prefix="/recipes", tags=["recipes"])
 group_router = APIRouter(prefix="/groups", tags=["groups"])
 filter_router = APIRouter(prefix="/filters", tags=["filters"])

@@ -23,14 +23,24 @@ async def list_fruits(
     """
     List all fruits with optional filtering.
     """
-    return crud.get_fruits(
+    fruits = crud.get_fruits(
         db, 
         skip=skip,
         limit=limit,
-        fruit_type_id=fruit_type_id,
-        country=country,
-        search=search
+        fruit_type_id=fruit_type_id
     )
+    
+    if fruits is None:
+        # Return an empty list with pagination info
+        return schemas.FruitList(
+            fruits=[],
+            total=0,
+            page=1,
+            size=limit,
+            pages=0
+        )
+    
+    return fruits
 
 @router.post("/", response_model=schemas.FruitResponse)
 async def create_fruit(

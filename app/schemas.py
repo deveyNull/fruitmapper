@@ -1,8 +1,9 @@
 # File: app/schemas.py
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+# Base response models
 class SuccessResponse(BaseModel):
     message: str
     status: str = "success"
@@ -11,143 +12,18 @@ class ErrorResponse(BaseModel):
     detail: str
     status: str = "error"
 
-# Fruit schemas with proper response type
-class FruitBase(BaseModel):
-    name: str
-    country_of_origin: str
-    date_picked: datetime
-    fruit_type_id: int
-
-class FruitCreate(FruitBase):
-    pass
-class FruitTypeBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class FruitTypeCreate(FruitTypeBase):
-    pass
-
-class FruitTypeUpdate(FruitTypeBase):
-    pass
-
-
-
-class FruitTypeResponse(FruitTypeBase):
-    id: int
-    fruits: List['Fruit']
-
-    class Config:
-        orm_mode = True
-
-# Keeping FruitType as an alias for backwards compatibility
-FruitType = FruitTypeResponse
-
-class FruitUpdate(BaseModel):
-    name: Optional[str] = None
-    country_of_origin: Optional[str] = None
-    date_picked: Optional[datetime] = None
-    fruit_type_id: Optional[int] = None
-
-class FruitResponse(FruitBase):
-    id: int
-    fruit_type: FruitTypeResponse
-
-    class Config:
-        orm_mode = True
-
-# Alias for backwards compatibility
-Fruit = FruitResponse
-
-# List response types
-class FruitList(BaseModel):
-    items: List[FruitResponse]
-    total: int
-    page: int = 1
-    size: int = 10
-
-class FruitTypeList(BaseModel):
-    items: List[FruitTypeResponse]
-    total: int
-    page: int = 1
-    size: int = 10
-
-
-
-# Recipe schemas
-class RecipeBase(BaseModel):
-    name: str
-    description: str
-    instructions: str
-    preparation_time: int
-
-class RecipeCreate(RecipeBase):
-    fruit_type_ids: List[int]
-
-class RecipeUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    instructions: Optional[str] = None
-    preparation_time: Optional[int] = None
-    fruit_type_ids: Optional[List[int]] = None
-
-class RecipeResponse(RecipeBase):
-    id: int
-    fruit_types: List[FruitTypeResponse]
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class RecipeList(BaseModel):
-    items: List[RecipeResponse]
-    total: int
-    page: int = 1
-    size: int = 10
-
-# API specific schemas
-class APIResponse(BaseModel):
-    status: str
-    message: str
-    data: Optional[Any] = None
-
-class PaginationParams(BaseModel):
-    page: int = 1
-    size: int = 10
-    sort_by: Optional[str] = None
-    sort_desc: bool = False
-
-class FilterParams(BaseModel):
-    search: Optional[str] = None
-    fruit_type_id: Optional[int] = None
-    country: Optional[str] = None
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
-
-# File upload schemas
-class FileUploadResponse(BaseModel):
-    filename: str
-    success: bool
-    message: str
-
-
-
 # User schemas
 class UserBase(BaseModel):
     username: str
     email: EmailStr
 
-class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
+class UserCreate(UserBase):
     password: str
     password_confirm: str
-
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-
 
 class UserResponse(UserBase):
     id: int
@@ -155,9 +31,9 @@ class UserResponse(UserBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# Alias User to UserResponse for backwards compatibility
+# Use UserResponse as the main User schema
 User = UserResponse
 
 class PasswordChange(BaseModel):
@@ -183,19 +59,14 @@ class FruitTypeCreate(FruitTypeBase):
 class FruitTypeUpdate(FruitTypeBase):
     pass
 
-class FruitType(FruitTypeBase):
+class FruitTypeResponse(FruitTypeBase):
     id: int
-    fruits: List['Fruit']
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class FruitTypeList(BaseModel):
-    fruit_types: List[FruitType]
-    total: int
-    page: int
-    size: int
-    pages: int
+# Use FruitTypeResponse as the main FruitType schema
+FruitType = FruitTypeResponse
 
 # Fruit schemas
 class FruitBase(BaseModel):
@@ -213,37 +84,15 @@ class FruitUpdate(BaseModel):
     date_picked: Optional[datetime] = None
     fruit_type_id: Optional[int] = None
 
-class Fruit(FruitBase):
+class FruitResponse(FruitBase):
     id: int
-    fruit_type: FruitType
+    fruit_type: FruitTypeResponse
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class FruitList(BaseModel):
-    fruits: List[Fruit]
-    total: int
-    page: int
-    size: int
-    pages: int
-
-
-class FruitResponse(FruitTypeBase):
-    id: int
-    fruits: List['Fruit']
-
-    class Config:
-        orm_mode = True
-
-# Keeping FruitType as an alias for backwards compatibility
+# Use FruitResponse as the main Fruit schema
 Fruit = FruitResponse
-
-
-
-
-
-
-
 
 # Group schemas
 class GroupBase(BaseModel):
@@ -256,23 +105,15 @@ class GroupCreate(GroupBase):
 class GroupUpdate(GroupBase):
     pass
 
-class Group(GroupBase):
-    id: int
-    created_at: datetime
-    members: List[User]
-
-    class Config:
-        orm_mode = True
-
-
 class GroupResponse(GroupBase):
     id: int
-    group: List['Group']
+    created_at: datetime
+    members: List[UserResponse]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# Keeping Group as an alias for backwards compatibility
+# Use GroupResponse as the main Group schema
 Group = GroupResponse
 
 # Filter schemas
@@ -289,27 +130,46 @@ class FilterCreate(FilterBase):
 class FilterUpdate(FilterBase):
     pass
 
-class Filter(FilterBase):
+class FilterResponse(FilterBase):
     id: int
     user_id: int
     created_at: datetime
     modified_at: datetime
-    user: User
-    group: Optional[Group] = None
+    user: UserResponse
+    group: Optional[GroupResponse] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+# Use FilterResponse as the main Filter schema
+Filter = FilterResponse
 
-class FilterResponse(FilterBase):
+# Recipe schemas
+class RecipeBase(BaseModel):
+    name: str
+    description: str
+    instructions: str
+    preparation_time: int
+
+class RecipeCreate(RecipeBase):
+    fruit_type_ids: List[int]
+
+class RecipeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    instructions: Optional[str] = None
+    preparation_time: Optional[int] = None
+    fruit_type_ids: Optional[List[int]] = None
+
+class RecipeResponse(RecipeBase):
     id: int
-    filters: List['Filter']
+    fruit_types: List[FruitTypeResponse]
+    created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-
-# Response schemas for pagination
+# Pagination and List Response schemas
 class PaginatedResponse(BaseModel):
     items: List[Any]
     total: int
@@ -317,34 +177,29 @@ class PaginatedResponse(BaseModel):
     size: int
     pages: int
 
+    class Config:
+        from_attributes = True
 
-# GroupList schema
-class GroupList(BaseModel):
-    groups: List[Group]
-    total: int
-    page: int
-    size: int
-    pages: int
+class FruitList(PaginatedResponse):
+    items: List[FruitResponse]
 
-# FilterList schema
-class FilterList(BaseModel):
-    filters: List[Filter]
-    total: int
-    page: int
-    size: int
-    pages: int
+class FruitTypeList(PaginatedResponse):
+    items: List[FruitTypeResponse]
 
+class RecipeList(PaginatedResponse):
+    items: List[RecipeResponse]
 
-# Group membership schemas
-class GroupMemberAdd(BaseModel):
-    user_id: int
+class GroupList(PaginatedResponse):
+    items: List[GroupResponse]
 
-class GroupMemberRemove(BaseModel):
-    user_id: int
+class FilterList(PaginatedResponse):
+    items: List[FilterResponse]
 
-# Filter sharing schemas
-class FilterShare(BaseModel):
-    group_id: int
+# File upload schemas
+class FileUploadResponse(BaseModel):
+    filename: str
+    success: bool
+    message: str
 
 # Batch operation schemas
 class BatchOperation(BaseModel):

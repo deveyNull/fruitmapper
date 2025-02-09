@@ -1,239 +1,186 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from fastapi.templating import Jinja2Templates
-
-
 from fastapi.responses import HTMLResponse, RedirectResponse
-
-
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.authentication import (
+    AuthenticationBackend, AuthenticationError, SimpleUser, 
+    UnauthenticatedUser, AuthCredentials
+)
 from datetime import timedelta
 from typing import Optional
 import jwt
 
 from app.database import get_db
-import app.crud
-import app.schemas
+import app.crud as crud
+import app.schemas as schemas
 from app.config import settings
 from app.dependencies import get_current_user, create_access_token
-from app.models import User 
-import app.templates
+from app.models import User
 
+router = APIRouter()  # Remove the prefix here since it's added in main.py
+templates = Jinja2Templates(directory="app/templates")
 
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Render the login page."""
+    if request.user.is_authenticated:
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    
+    return templates.TemplateResponse(
+        "login.html", 
+        {
+            "request": request,
+            "error": request.query_params.get("error")
+        }
+    )
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+@router.post("/login")
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = crud.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        return RedirectResponse(
+            url="/auth/login?error=Invalid+username+or+password",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    
+    access_token = create_access_token(data={"sub": user.username})
+    
+    response = RedirectResponse(
+        url="/",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax"
+    )
+    
+    return response
 
 @router.get("/register", response_class=HTMLResponse)
-async def register_page(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user = User
-):
-    """
-    Render the register page.
-    Redirects authenticated users away from register page.
-    """
-    #  TODO: If user is already authenticated, redirect to home or dashboard
-    #if current_user:
-    #    return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+async def register_page(request: Request):
+    """Render the register page."""
+    if request.user.is_authenticated:
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     
     return templates.TemplateResponse(
         "register.html", 
         {
             "request": request,
-            "current_user": current_user,
-            # Optional: Add any additional context needed for login page
-            "error": request.query_params.get("error")  # Optional error handling
+            "error": request.query_params.get("error")
         }
     )
-    
-
 
 @router.post("/register")
 async def register(
-    response: Response,
+    request: Request,
     username: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    # Create a Pydantic model instance manually
-    user = app.schemas.UserCreate(
-        username=username,
-        email=email,
-        password=password,
-        password_confirm=password_confirm
-    )
-    
-    # Check if username exists
-    if app.crud.get_user_by_username(db, user.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
+    if password != password_confirm:
+        return RedirectResponse(
+            url="/auth/register?error=Passwords+do+not+match",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Create user schema
+    try:
+        user = schemas.UserCreate(
+            username=username,
+            email=email,
+            password=password
+        )
+    except ValueError as e:
+        return RedirectResponse(
+            url=f"/auth/register?error={str(e)}",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Check for existing user
+    if crud.get_user_by_username(db, user.username):
+        return RedirectResponse(
+            url="/auth/register?error=Username+already+registered",
+            status_code=status.HTTP_303_SEE_OTHER
         )
     
-    # Check if email exists
-    if app.crud.get_user_by_email(db, user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+    if crud.get_user_by_email(db, user.email):
+        return RedirectResponse(
+            url="/auth/register?error=Email+already+registered",
+            status_code=status.HTTP_303_SEE_OTHER
         )
     
-    output = app.crud.create_user(db, user)
-    #TODO congrats registered
-    #return RedirectResponse(url="/api/v1/auth/auth/login", status_code=status.HTTP_302_FOUND)
+    # Create user
+    user = crud.create_user(db, user)
+    
     # Create access token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username},
-        expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": user.username})
     
-    # Set cookie with token
+    # Create response with cookie
+    response = RedirectResponse(
+        url="/",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=settings.COOKIE_SECURE,  # True in production
+        secure=settings.COOKIE_SECURE,
         samesite="lax"
     )
     
-    #return {"access_token": access_token, "token_type": "bearer"}
-    return RedirectResponse(
-        url="/", 
-        status_code=status.HTTP_303_SEE_OTHER
-    )
-
-templates = Jinja2Templates(directory="app/templates")
-
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user = User
-):
-    """
-    Render the login page.
-    Redirects authenticated users away from login page.
-    """
-    #  TODO: If user is already authenticated, redirect to home or dashboard
-    #if current_user:
-    #    return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    
-    return templates.TemplateResponse(
-        "login.html", 
-        {
-            "request": request,
-            "current_user": current_user,
-            # Optional: Add any additional context needed for login page
-            "error": request.query_params.get("error")  # Optional error handling
-        }
-    )
-
-
-@router.post("/login")
-async def login(
-    response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    user = app.crud.authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username},
-        expires_delta=access_token_expires
-    )
-    
-    # Set cookie with token
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=settings.COOKIE_SECURE,  # True in production
-        samesite="lax"
-    )
-    
-    #return {"access_token": access_token, "token_type": "bearer"}
-    return RedirectResponse(
-        url="/", 
-        status_code=status.HTTP_303_SEE_OTHER
-    )
-
+    return response
 
 @router.get("/logout")
-async def logout(response: Response):
-    # Explicitly delete the cookie with more comprehensive settings
+async def logout(request: Request):
+    response = RedirectResponse(
+        url="/",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
     response.delete_cookie(
-        key="access_token", 
-        path="/",  # Ensure you specify the path
-        domain=None,  # Use None for current domain
-        secure=True,  # If using HTTPS
-        httponly=True  # Recommended for security
-    )
-    
-    # Create a response that explicitly clears the cookie
-    redirect_response = RedirectResponse(
-        url="/", 
-        status_code=status.HTTP_303_SEE_OTHER
-    )
-    
-    # Additional method to ensure cookie deletion
-    redirect_response.delete_cookie(
         key="access_token",
-        path="/",
-        domain=None,
-        secure=True,
-        httponly=True
+        secure=settings.COOKIE_SECURE,
+        httponly=True,
+        samesite="lax"
     )
-    return RedirectResponse(
-        url="/", 
-        status_code=status.HTTP_303_SEE_OTHER
-    )
+    return response
 
-@router.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie(key="access_token")
-    return {"message": "Successfully logged out"}
-
-@router.get("/me", response_model=app.schemas.UserResponse)
-async def read_users_me(
-    current_user: app.schemas.UserResponse = Depends(get_current_user)
-):
+@router.get("/me", response_model=schemas.UserResponse)
+async def read_users_me(current_user = Depends(get_current_user)):
     return current_user
 
-@router.put("/me", response_model=app.schemas.UserResponse)
+@router.put("/me", response_model=schemas.UserResponse)
 async def update_user_me(
-    user_update: app.schemas.UserUpdate,
-    current_user: app.schemas.UserResponse = Depends(get_current_user),
+    user_update: schemas.UserUpdate,
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return app.crud.update_user(db, current_user.id, user_update)
+    return crud.update_user(db, current_user.id, user_update)
 
 @router.post("/password")
 async def change_password(
-    password_change: app.schemas.PasswordChange,
-    current_user: app.schemas.UserResponse = Depends(get_current_user),
+    password_change: schemas.PasswordChange,
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verify old password
-    if not app.crud.verify_password(db, current_user.id, password_change.old_password):
+    if not crud.verify_password(db, current_user.id, password_change.old_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect password"
         )
     
-    # Update password
-    app.crud.update_password(db, current_user.id, password_change.new_password)
+    crud.update_password(db, current_user.id, password_change.new_password)
     return {"message": "Password updated successfully"}
