@@ -1,10 +1,7 @@
-Admin upload:
-<!-- {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin_upload') }}"
-                           class="text-gray-900 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md hover:bg-gray-50">
-                            Admin
-                        </a>
-                        {% endif %} -->
+Admin upload/edit/delete etc doesnt do anything
 
+Filters on Fruits work, recipes doesn't work, no filters on fruit_types
+I believe the metaphor may be breaking down
 
+Groups/Filters remains a parallel/broken construct. 
 

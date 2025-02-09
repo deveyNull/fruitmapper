@@ -28,7 +28,7 @@ async def list_fruits(
 ):
     """List all fruits with optional filtering."""
     # Get fruits with pagination
-    page_size = 10
+    page_size = 50
     skip = (page - 1) * page_size
     
     # Get fruits with filters

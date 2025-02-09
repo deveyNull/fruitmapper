@@ -60,7 +60,6 @@ def load_recipes(filename):
                 instructions=row['instructions'],
                 preparation_time=int(row['preparation_time'])
             )
-            
             # Add fruit types to recipe
             fruit_types = row['fruit_types'].split('|')
             for ft_name in fruit_types:
