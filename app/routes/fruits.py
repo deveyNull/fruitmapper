@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, status, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -8,39 +8,58 @@ import app.crud as crud
 import app.schemas as schemas
 from app.dependencies import get_current_user, get_current_admin_user
 
-router = APIRouter(prefix="/fruits", tags=["fruits"])
 
-@router.get("/", response_model=schemas.FruitList)
+router = APIRouter(prefix="", tags=["fruits"])
+
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/", response_class=HTMLResponse)
 async def list_fruits(
-    skip: int = 0,
-    limit: int = 100,
+    request: Request,
     fruit_type_id: Optional[int] = None,
     country: Optional[str] = None,
     search: Optional[str] = None,
-    current_user: schemas.UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    page: int = 1,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    """
-    List all fruits with optional filtering.
-    """
+    """List all fruits with optional filtering."""
+    # Get fruits with pagination
+    page_size = 10
+    skip = (page - 1) * page_size
+    
+    # Get fruits with filters
     fruits = crud.get_fruits(
-        db, 
+        db,
         skip=skip,
-        limit=limit,
-        fruit_type_id=fruit_type_id
+        limit=page_size,
+        fruit_type_id=fruit_type_id,
+        country=country,
+        search=search
     )
     
-    if fruits is None:
-        # Return an empty list with pagination info
-        return schemas.FruitList(
-            fruits=[],
-            total=0,
-            page=1,
-            size=limit,
-            pages=0
-        )
+    # Get fruit types for filter dropdown
+    fruit_types = crud.get_fruit_types(db).items
     
-    return fruits
+    # Get unique countries for filter dropdown
+    countries = crud.get_fruit_countries(db)
+    
+    return templates.TemplateResponse(
+        "fruits.html",
+        {
+            "request": request,
+            "fruits": fruits,
+            "fruit_types": fruit_types,
+            "countries": countries,
+            "selected_type": fruit_type_id,
+            "selected_country": country,
+            "search": search,
+            "current_page": page
+        }
+    )
 
 @router.post("/", response_model=schemas.FruitResponse)
 async def create_fruit(
@@ -61,22 +80,32 @@ async def create_fruit(
     
     return crud.create_fruit(db, fruit)
 
-@router.get("/{fruit_id}", response_model=schemas.FruitResponse)
+@router.get("/{fruit_id}", response_class=HTMLResponse)
 async def get_fruit(
+    request: Request,
     fruit_id: int,
-    current_user: schemas.UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    """
-    Get details of a specific fruit.
-    """
+    """View a specific fruit's details."""
     fruit = crud.get_fruit(db, fruit_id)
     if not fruit:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Fruit not found"
         )
-    return fruit
+    
+    # Get compatible recipes for this fruit type
+    compatible_recipes = crud.get_recipes_by_fruit_type(db, fruit.fruit_type_id)
+    
+    return templates.TemplateResponse(
+        "fruit_detail.html",
+        {
+            "request": request,
+            "fruit": fruit,
+            "compatible_recipes": compatible_recipes
+        }
+    )
 
 @router.put("/{fruit_id}", response_model=schemas.FruitResponse)
 async def update_fruit(
@@ -209,3 +238,4 @@ async def change_fruit_type(
         fruit_id,
         schemas.FruitUpdate(fruit_type_id=fruit_type_id)
     )
+

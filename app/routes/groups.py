@@ -9,7 +9,7 @@ import app.crud
 import app.schemas
 from app.dependencies import get_current_user, get_current_admin_user
 
-router = APIRouter(prefix="/groups", tags=["groups"])
+router = APIRouter()
 
 @router.get("/", response_model=app.schemas.GroupList)
 async def list_groups(

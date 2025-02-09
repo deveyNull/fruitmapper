@@ -9,8 +9,7 @@ import schemas
 from dependencies import get_current_user, get_current_admin_user
 from config import get_settings, DATASET_COLUMNS
 
-router = APIRouter(prefix="/datasets", tags=["datasets"])
-
+router = APIRouter()
     
 @router.get("/", response_model=schemas.FruitList)
 async def get_dataset(

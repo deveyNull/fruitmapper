@@ -9,25 +9,102 @@ from app.dependencies import get_current_user, get_current_admin_user
 
 router = APIRouter()  # Remove the prefix, it's handled in main.py
 
-@router.get("/", response_model=schemas.RecipeList)
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/", response_class=HTMLResponse)
 async def list_recipes(
     request: Request,
+    fruit_type_id: Optional[int] = None,
+    max_time: Optional[int] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """List all recipes with optional filtering."""
+    page_size = 10
+    skip = (page - 1) * page_size
+
+    # Convert max_time to integer if provided
+    max_time = int(max_time) if max_time else None
+    fruit_type_id = int(fruit_type_id) if fruit_type_id else None
+    
+    # Get recipes with filters
+    recipes = crud.get_recipes(
+        db,
+        skip=skip,
+        limit=page_size,
+        search=search,
+        fruit_type_id=fruit_type_id,
+        max_time=max_time
+    )
+    
+    # Get fruit types for filter dropdown
+    fruit_types = crud.get_fruit_types(db).items
+    
+    return templates.TemplateResponse(
+        "recipes.html",
+        {
+            "request": request,
+            "recipes": recipes,
+            "fruit_types": fruit_types,
+            "selected_type": fruit_type_id,
+            "max_time": max_time,
+            "search": search,
+            "current_user": current_user
+        }
+    )
+
+@router.get("/api", response_model=schemas.RecipeList)
+async def list_recipes_api(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
     fruit_type_id: Optional[int] = None,
+    max_time: Optional[int] = None,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """List all recipes with optional filtering."""
+    """API endpoint for listing recipes."""
     return crud.get_recipes(
         db,
         skip=skip,
         limit=limit,
         search=search,
-        fruit_type_id=fruit_type_id
+        fruit_type_id=fruit_type_id,
+        max_time=max_time
     )
 
+@router.get("/{recipe_id}", response_class=HTMLResponse)
+async def view_recipe(
+    request: Request,
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """View a specific recipe's details."""
+    recipe = crud.get_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipe not found"
+        )
+    
+    # Get available fruit types for admin management
+    available_fruit_types = crud.get_fruit_types(db).items if current_user.is_admin else []
+    
+    return templates.TemplateResponse(
+        "recipe_detail.html",
+        {
+            "request": request,
+            "recipe": recipe,
+            "current_user": current_user,
+            "available_fruit_types": available_fruit_types
+        }
+    )
 
 @router.post("/", response_model=schemas.RecipeResponse)
 async def create_recipe(

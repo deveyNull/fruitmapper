@@ -1,9 +1,8 @@
-# File: app/schemas.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# Base response models
+# Base Response Models
 class SuccessResponse(BaseModel):
     message: str
     status: str = "success"
@@ -12,7 +11,18 @@ class ErrorResponse(BaseModel):
     detail: str
     status: str = "error"
 
-# User schemas
+# Base Pagination Model
+class PaginatedResponse(BaseModel):
+    items: List[Any]
+    total: int
+    page: int = 1
+    size: int = 10
+    pages: int = 1
+
+    class Config:
+        from_attributes = True
+
+# User Models
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -33,22 +43,10 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# Use UserResponse as the main User schema
+# Alias for backwards compatibility
 User = UserResponse
 
-class PasswordChange(BaseModel):
-    old_password: str
-    new_password: str
-
-# Token schemas
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-
-# FruitType schemas
+# FruitType Models
 class FruitTypeBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -61,14 +59,15 @@ class FruitTypeUpdate(FruitTypeBase):
 
 class FruitTypeResponse(FruitTypeBase):
     id: int
+    fruit_count: Optional[int] = 0
 
     class Config:
         from_attributes = True
 
-# Use FruitTypeResponse as the main FruitType schema
+# Alias for backwards compatibility
 FruitType = FruitTypeResponse
 
-# Fruit schemas
+# Fruit Models
 class FruitBase(BaseModel):
     name: str
     country_of_origin: str
@@ -91,60 +90,10 @@ class FruitResponse(FruitBase):
     class Config:
         from_attributes = True
 
-# Use FruitResponse as the main Fruit schema
+# Alias for backwards compatibility
 Fruit = FruitResponse
 
-# Group schemas
-class GroupBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class GroupCreate(GroupBase):
-    pass
-
-class GroupUpdate(GroupBase):
-    pass
-
-class GroupResponse(GroupBase):
-    id: int
-    created_at: datetime
-    members: List[UserResponse]
-
-    class Config:
-        from_attributes = True
-
-# Use GroupResponse as the main Group schema
-Group = GroupResponse
-
-# Filter schemas
-class FilterBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    filter_criteria: Dict[str, Any]
-    visible_columns: List[str]
-    group_id: Optional[int] = None
-
-class FilterCreate(FilterBase):
-    pass
-
-class FilterUpdate(FilterBase):
-    pass
-
-class FilterResponse(FilterBase):
-    id: int
-    user_id: int
-    created_at: datetime
-    modified_at: datetime
-    user: UserResponse
-    group: Optional[GroupResponse] = None
-
-    class Config:
-        from_attributes = True
-
-# Use FilterResponse as the main Filter schema
-Filter = FilterResponse
-
-# Recipe schemas
+# Recipe Models
 class RecipeBase(BaseModel):
     name: str
     description: str
@@ -169,39 +118,75 @@ class RecipeResponse(RecipeBase):
     class Config:
         from_attributes = True
 
-# Pagination and List Response schemas
-class PaginatedResponse(BaseModel):
-    items: List[Any]
-    total: int
-    page: int
-    size: int
-    pages: int
-
-    class Config:
-        from_attributes = True
+# Typed List Response Models
+class FruitTypeList(PaginatedResponse):
+    items: List[FruitTypeResponse]
 
 class FruitList(PaginatedResponse):
     items: List[FruitResponse]
 
-class FruitTypeList(PaginatedResponse):
-    items: List[FruitTypeResponse]
-
 class RecipeList(PaginatedResponse):
     items: List[RecipeResponse]
+
+# Group Models
+class GroupBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class GroupCreate(GroupBase):
+    pass
+
+class GroupUpdate(GroupBase):
+    pass
+
+class GroupResponse(GroupBase):
+    id: int
+    created_at: datetime
+    members: List[UserResponse]
+
+    class Config:
+        from_attributes = True
+
+# Alias for backwards compatibility
+Group = GroupResponse
 
 class GroupList(PaginatedResponse):
     items: List[GroupResponse]
 
+# Filter Models
+class FilterBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    filter_criteria: Dict[str, Any]
+    visible_columns: List[str]
+    group_id: Optional[int] = None
+
+class FilterCreate(FilterBase):
+    pass
+
+class FilterUpdate(FilterBase):
+    pass
+
+class FilterResponse(FilterBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    modified_at: datetime
+    user: UserResponse
+    group: Optional[GroupResponse] = None
+
+    class Config:
+        from_attributes = True
+
 class FilterList(PaginatedResponse):
     items: List[FilterResponse]
 
-# File upload schemas
+# Utility Models
 class FileUploadResponse(BaseModel):
     filename: str
     success: bool
     message: str
 
-# Batch operation schemas
 class BatchOperation(BaseModel):
     ids: List[int]
     operation: str
@@ -211,3 +196,15 @@ class BatchResponse(BaseModel):
     processed: int
     failed: int
     errors: Optional[List[str]] = None
+
+# Authentication Models
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str

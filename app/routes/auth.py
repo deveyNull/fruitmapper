@@ -101,7 +101,8 @@ async def register(
         user = schemas.UserCreate(
             username=username,
             email=email,
-            password=password
+            password=password,
+            password_confirm=password_confirm
         )
     except ValueError as e:
         return RedirectResponse(

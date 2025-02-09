@@ -9,90 +9,13 @@ import schemas
 from dependencies import get_current_user, get_current_admin_user
 
 # Initialize routers
-fruit_router = APIRouter(prefix="/fruits", tags=["fruits"])
-fruit_type_router = APIRouter(prefix="/fruit-types", tags=["fruit-types"])
+#fruit_router = APIRouter(prefix="/fruits", tags=["fruits"])
+#fruit_type_router = APIRouter(prefix="/fruit-types", tags=["fruit-types"])
 
-recipe_router = APIRouter(prefix="/recipes", tags=["recipes"])
+#recipe_router = APIRouter(prefix="/recipes", tags=["recipes"])
 group_router = APIRouter(prefix="/groups", tags=["groups"])
 filter_router = APIRouter(prefix="/filters", tags=["filters"])
 
-# Fruit routes
-@fruit_router.get("/", response_model=schemas.FruitList)
-async def list_fruits(
-    skip: int = 0,
-    limit: int = 100,
-    fruit_type_id: Optional[int] = None,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return crud.get_fruits(db, skip=skip, limit=limit, fruit_type_id=fruit_type_id)
-
-@fruit_router.post("/", response_model=schemas.FruitResponse)
-async def create_fruit(
-    fruit: schemas.FruitCreate,
-    current_user = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    return crud.create_fruit(db, fruit)
-
-@fruit_router.get("/{fruit_id}", response_model=schemas.FruitResponse)
-async def get_fruit(
-    fruit_id: int,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    fruit = crud.get_fruit(db, fruit_id)
-    if not fruit:
-        raise HTTPException(status_code=404, detail="Fruit not found")
-    return fruit
-
-@fruit_router.put("/{fruit_id}", response_model=schemas.FruitResponse)
-async def update_fruit(
-    fruit_id: int,
-    fruit_update: schemas.FruitUpdate,
-    current_user = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    return crud.update_fruit(db, fruit_id, fruit_update)
-
-# Recipe routes
-@recipe_router.get("/", response_model=schemas.RecipeList)
-async def list_recipes(
-    skip: int = 0,
-    limit: int = 100,
-    fruit_type_id: Optional[int] = None,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return crud.get_recipes(db, skip=skip, limit=limit, fruit_type_id=fruit_type_id)
-
-@recipe_router.post("/", response_model=schemas.RecipeResponse)
-async def create_recipe(
-    recipe: schemas.RecipeCreate,
-    current_user = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    return crud.create_recipe(db, recipe)
-
-@recipe_router.get("/{recipe_id}", response_model=schemas.RecipeResponse)
-async def get_recipe(
-    recipe_id: int,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    recipe = crud.get_recipe(db, recipe_id)
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-    return recipe
-
-@recipe_router.put("/{recipe_id}", response_model=schemas.RecipeResponse)
-async def update_recipe(
-    recipe_id: int,
-    recipe_update: schemas.RecipeUpdate,
-    current_user = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    return crud.update_recipe(db, recipe_id, recipe_update)
 
 # Group routes
 @group_router.get("/", response_model=schemas.GroupList)

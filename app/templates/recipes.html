@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-semibold text-gray-900">Recipes</h1>
             {% if current_user.is_admin %}
             <div class="flex items-center space-x-4">
-                <a href="{{ url_for('create_recipe') }}" 
+                <a href="/recipes/new" 
                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                     Add Recipe
                 </a>
@@ -18,15 +18,12 @@
         </div>
 
         <!-- Filter Panel -->
-        <div class="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="mt-4 bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    Filter Recipes
-                </h3>
-                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <label for="fruit-type" class="block text-sm font-medium text-gray-700">By Fruit Type</label>
-                        <select id="fruit-type" name="fruit_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <select id="fruit-type" name="fruit_type_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                             <option value="">All Types</option>
                             {% for type in fruit_types %}
                             <option value="{{ type.id }}" {% if selected_type == type.id %}selected{% endif %}>
@@ -36,8 +33,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="preparation-time" class="block text-sm font-medium text-gray-700">Max Preparation Time</label>
-                        <select id="preparation-time" name="max_time" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <label for="max-time" class="block text-sm font-medium text-gray-700">Max Preparation Time</label>
+                        <select id="max-time" name="max_time" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                             <option value="">Any Time</option>
                             <option value="15" {% if max_time == 15 %}selected{% endif %}>15 minutes</option>
                             <option value="30" {% if max_time == 30 %}selected{% endif %}>30 minutes</option>
@@ -45,83 +42,147 @@
                             <option value="120" {% if max_time == 120 %}selected{% endif %}>2 hours</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                        <input type="text" name="search" id="search" 
+                               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                               placeholder="Search recipes..."
+                               value="{{ search if search else '' }}">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Recipe Cards -->
-        <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {% for recipe in recipes %}
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-                <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        {{ recipe.name }}
-                    </h3>
-                    <div class="mt-2">
-                        <p class="text-sm text-gray-500">
-                            {{ recipe.description[:150] }}{% if recipe.description|length > 150 %}...{% endif %}
-                        </p>
-                    </div>
-                    <div class="mt-4">
-                        <span class="text-sm font-medium text-gray-500">Preparation time:</span>
-                        <span class="ml-1 text-sm text-gray-900">{{ recipe.preparation_time }} minutes</span>
-                    </div>
-                    <div class="mt-2">
-                        <span class="text-sm font-medium text-gray-500">Fruit types:</span>
-                        <div class="mt-1 flex flex-wrap gap-2">
-                            {% for type in recipe.fruit_types %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {{ type.name }}
-                            </span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <a href="{{ url_for('view_recipe', recipe_id=recipe.id) }}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                            View Recipe
-                        </a>
-                        {% if current_user.is_admin %}
-                        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" 
-                           class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Edit
-                        </a>
-                        {% endif %}
+        <!-- Recipes Table -->
+        <div class="mt-8 flex flex-col">
+            <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                    <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Recipe Name
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Description
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Preparation Time
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Fruit Types
+                                    </th>
+                                    <th scope="col" class="relative px-6 py-3">
+                                        <span class="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for recipe in recipes.items %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ recipe.name }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900 truncate max-w-md">{{ recipe.description }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ recipe.preparation_time }} minutes</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            {% for type in recipe.fruit_types %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                {{ type.name }}
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="/recipes/{{ recipe.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">View</a>
+                                        {% if current_user.is_admin %}
+                                        <a href="/recipes/{{ recipe.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
 
         <!-- Pagination -->
-        {% include "includes/pagination.html" %}
+        {% if recipes.total > recipes.size %}
+        <div class="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+            <div class="flex flex-1 justify-between">
+                {% if recipes.page > 1 %}
+                <a href="?page={{ recipes.page - 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if max_time %}&max_time={{ max_time }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+                   class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                <span class="text-sm text-gray-700">
+                    Page {{ recipes.page }} of {{ recipes.pages }}
+                </span>
+                {% if recipes.page < recipes.pages %}
+                <a href="?page={{ recipes.page + 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if max_time %}&max_time={{ max_time }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+                   class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const fruitTypeSelect = document.getElementById('fruit-type');
-    const prepTimeSelect = document.getElementById('preparation-time');
-
-    function updateFilters() {
-        const params = new URLSearchParams(window.location.search);
-        if (fruitTypeSelect.value) {
-            params.set('fruit_type', fruitTypeSelect.value);
-        } else {
-            params.delete('fruit_type');
+    document.addEventListener('DOMContentLoaded', function() {
+        const fruitTypeSelect = document.getElementById('fruit-type');
+        const maxTimeSelect = document.getElementById('max-time');
+        const searchInput = document.getElementById('search');
+        let timeout = null;
+    
+        function updateFilters() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (fruitTypeSelect.value) {
+                params.set('fruit_type_id', fruitTypeSelect.value);
+            } else {
+                params.delete('fruit_type_id');
+            }
+            
+            if (maxTimeSelect.value) {
+                params.set('max_time', maxTimeSelect.value);
+            } else {
+                params.delete('max_time');
+            }
+            
+            if (searchInput.value) {
+                params.set('search', searchInput.value);
+            } else {
+                params.delete('search');
+            }
+            
+            // Reset to page 1 when filters change
+            params.set('page', '1');
+            
+            window.location.search = params.toString();
         }
-        if (prepTimeSelect.value) {
-            params.set('max_time', prepTimeSelect.value);
-        } else {
-            params.delete('max_time');
-        }
-        window.location.search = params.toString();
-    }
-
-    fruitTypeSelect.addEventListener('change', updateFilters);
-    prepTimeSelect.addEventListener('change', updateFilters);
-});
-</script>
+    
+        fruitTypeSelect.addEventListener('change', updateFilters);
+        maxTimeSelect.addEventListener('change', updateFilters);
+        
+        // Debounce search input
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(updateFilters, 500);
+        });
+    });
+    </script>
 {% endblock %}

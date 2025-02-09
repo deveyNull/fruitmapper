@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, Request, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -7,25 +7,45 @@ import app.crud as crud
 import app.schemas as schemas
 from app.dependencies import get_current_user, get_current_admin_user
 
-router = APIRouter(prefix="/fruit-types", tags=["fruit_types"])
+router = APIRouter(prefix="", tags=["fruit_types"])
 
-@router.get("/", response_model=schemas.FruitTypeList)
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/", response_class=HTMLResponse)
 async def list_fruit_types(
-    skip: int = 0,
-    limit: int = 100,
+    request: Request,
     search: Optional[str] = None,
-    current_user: schemas.UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    page: int = 1,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    """
-    List all fruit types with optional search filter.
-    """
-    return crud.get_fruit_types(
+    """List all fruit types with optional search and pagination."""
+    # Set up pagination
+    page_size = 10
+    skip = (page - 1) * page_size
+    
+    # Get fruit types with pagination
+    fruit_types = crud.get_fruit_types(
         db,
         skip=skip,
-        limit=limit,
+        limit=page_size,
         search=search
     )
+    
+    return templates.TemplateResponse(
+        "fruit_types.html",
+        {
+            "request": request,
+            "fruit_types": fruit_types,
+            "search": search,
+            "current_page": page,
+            "total_pages": (fruit_types.total + page_size - 1) // page_size
+        }
+    )
+
 
 @router.post("/", response_model=schemas.FruitTypeResponse)
 async def create_fruit_type(
@@ -44,22 +64,28 @@ async def create_fruit_type(
         )
     return crud.create_fruit_type(db, fruit_type)
 
-@router.get("/{type_id}", response_model=schemas.FruitTypeResponse)
-async def get_fruit_type(
+@router.get("/{type_id}", response_class=HTMLResponse)
+async def view_fruit_type(
+    request: Request,
     type_id: int,
-    current_user: schemas.UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    """
-    Get details of a specific fruit type.
-    """
+    """View a specific fruit type's details."""
     fruit_type = crud.get_fruit_type(db, type_id)
     if not fruit_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Fruit type not found"
         )
-    return fruit_type
+    
+    return templates.TemplateResponse(
+        "fruit_type_detail.html",
+        {
+            "request": request,
+            "fruit_type": fruit_type
+        }
+    )
 
 @router.put("/{type_id}", response_model=schemas.FruitTypeResponse)
 async def update_fruit_type(

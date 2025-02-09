@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}{{ fruit.name }} - Fruit Recipe Platform{% endblock %}
+{% block title %}{{ fruit_type.name }} - Fruit Recipe Platform{% endblock %}
 
 {% block content %}
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Breadcrumb -->
         <nav class="flex items-center text-sm font-medium text-gray-500">
-            <a href="/fruits" class="hover:text-gray-700">Fruits</a>
+            <a href="/fruit-types" class="hover:text-gray-700">Fruit Types</a>
             <svg class="flex-shrink-0 mx-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
             </svg>
-            <span class="text-gray-900">{{ fruit.name }}</span>
+            <span class="text-gray-900">{{ fruit_type.name }}</span>
         </nav>
 
         <div class="mt-6">
@@ -19,14 +19,14 @@
             <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
                     <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
-                        {{ fruit.name }}
+                        {{ fruit_type.name }}
                     </h1>
                 </div>
                 {% if request.user.is_admin %}
                 <div class="mt-4 flex md:mt-0 md:ml-4">
-                    <a href="/fruits/{{ fruit.id }}/edit"
+                    <a href="/fruit-types/{{ fruit_type.id }}/edit"
                        class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                        Edit Fruit
+                        Edit Fruit Type
                     </a>
                 </div>
                 {% endif %}
@@ -36,60 +36,39 @@
             <div class="mt-8 max-w-3xl mx-auto grid grid-cols-1 gap-6 sm:px-6 lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3">
                 <!-- Main Content -->
                 <div class="space-y-6 lg:col-span-2">
-                    <!-- Basic Info Card -->
-                    <section aria-labelledby="fruit-info">
+                    <!-- Description Card -->
+                    <section aria-labelledby="fruit-type-info">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="fruit-info" class="text-lg leading-6 font-medium text-gray-900">
-                                    Fruit Information
+                                <h2 id="fruit-type-info" class="text-lg leading-6 font-medium text-gray-900">
+                                    About this Fruit Type
                                 </h2>
-                                <div class="mt-5 border-t border-gray-200">
-                                    <dl class="divide-y divide-gray-200">
-                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                                            <dt class="text-sm font-medium text-gray-500">Fruit Type</dt>
-                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
-                                                    {{ fruit.fruit_type.name }}
-                                                </span>
-                                            </dd>
-                                        </div>
-                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                                            <dt class="text-sm font-medium text-gray-500">Country of Origin</dt>
-                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                {{ fruit.country_of_origin }}
-                                            </dd>
-                                        </div>
-                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                                            <dt class="text-sm font-medium text-gray-500">Date Picked</dt>
-                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                {{ fruit.date_picked.strftime('%B %d, %Y') }}
-                                            </dd>
-                                        </div>
-                                    </dl>
+                                <div class="mt-4 text-sm text-gray-500">
+                                    {{ fruit_type.description }}
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Compatible Recipes -->
-                    <section aria-labelledby="compatible-recipes">
+                    <!-- Fruits of This Type -->
+                    <section aria-labelledby="fruits-list">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="compatible-recipes" class="text-lg leading-6 font-medium text-gray-900">
-                                    Compatible Recipes
+                                <h2 id="fruits-list" class="text-lg leading-6 font-medium text-gray-900">
+                                    Fruits in this Category
                                 </h2>
                                 <div class="mt-6 grid gap-4">
-                                    {% for recipe in compatible_recipes %}
+                                    {% for fruit in fruit_type.fruits %}
                                     <div class="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400">
                                         <div class="flex-1 min-w-0">
-                                            <a href="/recipes/{{ recipe.id }}" class="focus:outline-none">
-                                                <p class="text-sm font-medium text-gray-900">{{ recipe.name }}</p>
-                                                <p class="text-sm text-gray-500 truncate">{{ recipe.description }}</p>
+                                            <a href="/fruits/{{ fruit.id }}" class="focus:outline-none">
+                                                <p class="text-sm font-medium text-gray-900">{{ fruit.name }}</p>
+                                                <p class="text-sm text-gray-500 truncate">{{ fruit.country_of_origin }}</p>
                                             </a>
                                         </div>
                                         <div class="flex-shrink-0">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                {{ recipe.preparation_time }}min
+                                                {{ fruit.date_picked.strftime('%B %d, %Y') }}
                                             </span>
                                         </div>
                                     </div>
@@ -102,16 +81,19 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-6 lg:col-span-1">
-                    <!-- Type Description -->
-                    <section aria-labelledby="type-info">
+                    <!-- Statistics -->
+                    <section aria-labelledby="type-stats">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="type-info" class="text-lg leading-6 font-medium text-gray-900">
-                                    About {{ fruit.fruit_type.name }}
+                                <h2 id="type-stats" class="text-lg leading-6 font-medium text-gray-900">
+                                    Statistics
                                 </h2>
-                                <div class="mt-4 text-sm text-gray-500">
-                                    {{ fruit.fruit_type.description }}
-                                </div>
+                                <dl class="mt-4 grid grid-cols-1 gap-4">
+                                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-6 rounded-lg">
+                                        <dt class="text-sm font-medium text-gray-500">Total Fruits</dt>
+                                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0">{{ fruit_type.fruits|length }}</dd>
+                                    </div>
+                                </dl>
                             </div>
                         </div>
                     </section>
@@ -125,11 +107,11 @@
                                     Admin Actions
                                 </h2>
                                 <div class="mt-4 space-y-3">
-                                    <form action="/fruits/{{ fruit.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this fruit?');">
+                                    <form action="/fruit-types/{{ fruit_type.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this fruit type? This will affect all associated fruits.');">
                                         <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit"
                                                 class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
-                                            Delete Fruit
+                                            Delete Fruit Type
                                         </button>
                                     </form>
                                 </div>

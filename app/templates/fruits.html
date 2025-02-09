@@ -1,4 +1,3 @@
-# File: app/templates/fruits.html
 {% extends "base.html" %}
 
 {% block title %}Fruits - Fruit Recipe Platform{% endblock %}
@@ -120,65 +119,73 @@
 
         <!-- Pagination -->
         {% if fruits.total > fruits.size %}
-        <div class="mt-4 flex items-center justify-between">
-            <div class="flex-1 flex justify-between sm:hidden">
-                {% if fruits.page > 1 %}
-                <a href="?page={{ fruits.page - 1 }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Previous
-                </a>
-                {% endif %}
-                {% if fruits.page * fruits.size < fruits.total %}
-                <a href="?page={{ fruits.page + 1 }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Next
-                </a>
-                {% endif %}
-            </div>
-        </div>
+<div class="mt-4 flex items-center justify-between">
+    <div class="flex-1 flex justify-between">
+        {% if fruits.page > 1 %}
+        <a href="?page={{ fruits.page - 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Previous
+        </a>
         {% endif %}
+        <span class="text-sm text-gray-700">
+            Page {{ fruits.page }} of {{ fruits.pages }}
+        </span>
+        {% if fruits.page < fruits.pages %}
+        <a href="?page={{ fruits.page + 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Next
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const fruitTypeSelect = document.getElementById('fruit-type');
-    const countrySelect = document.getElementById('country');
-    const searchInput = document.getElementById('search');
-    let timeout = null;
-
-    function updateFilters() {
-        const params = new URLSearchParams(window.location.search);
-        
-        if (fruitTypeSelect.value) {
-            params.set('fruit_type', fruitTypeSelect.value);
-        } else {
-            params.delete('fruit_type');
-        }
-        
-        if (countrySelect.value) {
-            params.set('country', countrySelect.value);
-        } else {
-            params.delete('country');
-        }
-        
-        if (searchInput.value) {
-            params.set('search', searchInput.value);
-        } else {
-            params.delete('search');
-        }
-        
-        window.location.search = params.toString();
-    }
-
-    fruitTypeSelect.addEventListener('change', updateFilters);
-    countrySelect.addEventListener('change', updateFilters);
+    document.addEventListener('DOMContentLoaded', function() {
+        const fruitTypeSelect = document.getElementById('fruit-type');
+        const countrySelect = document.getElementById('country');
+        const searchInput = document.getElementById('search');
+        let timeout = null;
     
-    // Debounce search input
-    searchInput.addEventListener('input', function() {
-        clearTimeout(timeout);
-        timeout = setTimeout(updateFilters, 500);
+        function updateFilters() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (fruitTypeSelect.value) {
+                params.set('fruit_type_id', fruitTypeSelect.value);
+            } else {
+                params.delete('fruit_type_id');
+            }
+            
+            if (countrySelect.value) {
+                params.set('country', countrySelect.value);
+            } else {
+                params.delete('country');
+            }
+            
+            if (searchInput.value) {
+                params.set('search', searchInput.value);
+            } else {
+                params.delete('search');
+            }
+            
+            // Reset to page 1 when filters change
+            params.set('page', '1');
+            
+            window.location.search = params.toString();
+        }
+    
+        fruitTypeSelect.addEventListener('change', updateFilters);
+        countrySelect.addEventListener('change', updateFilters);
+        
+        // Debounce search input
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(updateFilters, 500);
+        });
     });
-});
-</script>
+    </script>
 {% endblock %}

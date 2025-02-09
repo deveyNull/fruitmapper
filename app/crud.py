@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
+from sqlalchemy import func
+
 from fastapi import UploadFile, HTTPException
 import csv
 from datetime import datetime
@@ -73,23 +75,35 @@ def get_fruit_types(
     limit: int = 100,
     search: Optional[str] = None
 ) -> schemas.FruitTypeList:
-    query = db.query(FruitType)
+    query = db.query(
+        FruitType,
+        func.count(Fruit.id).label('fruit_count')
+    ).outerjoin(Fruit)
     
     if search:
         search = f"%{search}%"
         query = query.filter(FruitType.name.ilike(search) | 
                            FruitType.description.ilike(search))
     
-    total = query.count()
+    # Group by and order by fruit count
+    query = query.group_by(FruitType.id).order_by(func.count(Fruit.id).desc())
+    
+    total = db.query(FruitType).count()
     items = query.offset(skip).limit(limit).all()
-    pages = (total + limit - 1) // limit
+    
+    # Convert to response objects with fruit count
+    fruit_types = []
+    for ft, count in items:
+        ft_dict = schemas.FruitTypeResponse.model_validate(ft)
+        ft_dict.fruit_count = count
+        fruit_types.append(ft_dict)
 
     return schemas.FruitTypeList(
-        items=[schemas.FruitTypeResponse.model_validate(ft) for ft in items],
+        items=fruit_types,
         total=total,
         page=skip // limit + 1,
         size=limit,
-        pages=pages
+        pages=(total + limit - 1) // limit
     )
 
 def create_fruit_type(db: Session, fruit_type: schemas.FruitTypeCreate) -> FruitType:
@@ -134,14 +148,33 @@ def get_fruits(
     db: Session,
     skip: int = 0,
     limit: int = 100,
-    fruit_type_id: Optional[int] = None
+    fruit_type_id: Optional[int] = None,
+    country: Optional[str] = None,
+    search: Optional[str] = None
 ) -> schemas.FruitList:
     query = db.query(Fruit)
+    
+    # Apply filters
     if fruit_type_id:
         query = query.filter(Fruit.fruit_type_id == fruit_type_id)
     
+    if country:
+        query = query.filter(Fruit.country_of_origin == country)
+    
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Fruit.name.ilike(search_term),
+                Fruit.country_of_origin.ilike(search_term)
+            )
+        )
+    
+    # Get total before pagination
     total = query.count()
-    fruits = query.offset(skip).limit(limit).all()
+    
+    # Apply pagination
+    fruits = query.order_by(Fruit.name).offset(skip).limit(limit).all()
     pages = (total + limit - 1) // limit
 
     return schemas.FruitList(
@@ -151,6 +184,10 @@ def get_fruits(
         size=limit,
         pages=pages
     )
+
+def get_fruit_countries(db: Session) -> List[str]:
+    """Get list of all unique countries that have fruits."""
+    return [r[0] for r in db.query(Fruit.country_of_origin).distinct().all()]
 
 def get_fruits_by_type(
     db: Session,
@@ -365,6 +402,48 @@ def update_filter(
     db.refresh(db_filter)
     return db_filter
 
+def get_recipe(db: Session, recipe_id: int) -> Optional[Recipe]:
+    return db.query(Recipe).filter(Recipe.id == recipe_id).first()
+
+def get_recipes(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    fruit_type_id: Optional[int] = None,
+    max_time: Optional[int] = None
+) -> schemas.RecipeList:
+    """
+    Get recipes with optional filtering and search.
+    """
+    query = db.query(Recipe)
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                Recipe.name.ilike(search_filter),
+                Recipe.description.ilike(search_filter)
+            )
+        )
+    
+    if fruit_type_id:
+        query = query.filter(Recipe.fruit_types.any(FruitType.id == fruit_type_id))
+    
+    if max_time:
+        query = query.filter(Recipe.preparation_time <= max_time)
+    
+    total = query.count()
+    recipes = query.order_by(Recipe.name).offset(skip).limit(limit).all()
+    pages = (total + limit - 1) // limit
+
+    return schemas.RecipeList(
+        items=[schemas.RecipeResponse.model_validate(r) for r in recipes],
+        total=total,
+        page=skip // limit + 1,
+        size=limit,
+        pages=pages
+    )
 
 def get_recipe_count(db: Session) -> int:
     print("Querying recipe count...")  # Debug output
@@ -386,3 +465,26 @@ def get_filter_count(db: Session, username: str) -> int:
     count = db.query(SavedFilter).filter_by(user_id=user.id).count()
     print(f"Found {count} filters")  # Debug output
     return count
+
+def get_recipes_by_fruit_type(
+    db: Session,
+    fruit_type_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Recipe]:
+    """
+    Get all recipes that use a specific fruit type.
+    Returns a list of recipes that include this fruit type.
+    """
+    # Verify fruit type exists
+    fruit_type = get_fruit_type(db, fruit_type_id)
+    if not fruit_type:
+        raise HTTPException(404, "Fruit type not found")
+    
+    # Query recipes that include this fruit type
+    query = db.query(Recipe).filter(
+        Recipe.fruit_types.any(FruitType.id == fruit_type_id)
+    )
+    
+    recipes = query.offset(skip).limit(limit).all()
+    return recipes

@@ -7,7 +7,7 @@ import app.crud
 import app.schemas
 from app.dependencies import get_current_user
 
-router = APIRouter(prefix="/filters", tags=["filters"])
+router = APIRouter()
 
 @router.get("/", response_model=app.schemas.FilterList)
 async def list_filters(
