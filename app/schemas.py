@@ -82,16 +82,46 @@ class OwnerUpdate(BaseModel):
     description: Optional[str] = None
     contact_info: Optional[str] = None
 
+class OwnerIPResponse(BaseModel):
+    id: int
+    ip: str
+    added_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class OwnerDomainResponse(BaseModel):
+    id: int
+    domain: str
+    added_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ServiceBasicResponse(BaseModel):
+    id: int
+    ip: str
+    port: int
+    domain: Optional[str]
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
 class OwnerResponse(OwnerBase):
     id: int
     created_at: datetime
-    service_count: Optional[int] = 0
-    ip_count: Optional[int] = 0
+    services: List[ServiceBasicResponse] = []
+    owned_ips: List[OwnerIPResponse] = []
+    owned_domains: List[OwnerDomainResponse] = []
 
     class Config:
         from_attributes = True
 
 # Service Models
+
+
+
 class ServiceBase(BaseModel):
     ip: str
     port: int
@@ -183,6 +213,13 @@ class FruitResponse(FruitBase):
     class Config:
         from_attributes = True
    
+class ServiceResponse(ServiceBasicResponse):
+    fruit: Optional[FruitResponse] = None
+    owner: Optional[OwnerResponse] = None
+
+    class Config:
+        from_attributes = True
+
 
 # Alias for backwards compatibility
 Fruit = FruitResponse
@@ -319,3 +356,4 @@ class PasswordChange(BaseModel):
 
 FruitResponse.update_forward_refs()
 ServiceResponse.update_forward_refs()
+OwnerResponse.update_forward_refs()

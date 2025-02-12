@@ -35,6 +35,13 @@ async def list_owners(
         direction=direction
     )
     
+    # Debug print
+    for owner in owners.items:
+        print(f"Owner: {owner.name}")
+        print(f"Services count: {len(owner.services) if owner.services else 0}")
+        print(f"IPs count: {len(owner.owned_ips) if owner.owned_ips else 0}")
+        print(f"Domains count: {len(owner.owned_domains) if owner.owned_domains else 0}")
+    
     return templates.TemplateResponse(
         "owners.html",
         {

@@ -27,7 +27,7 @@ async def list_services(
     domain: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
-    page_size: int = 10,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
