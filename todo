@@ -5,3 +5,25 @@ I believe the metaphor may be breaking down
 
 Groups/Filters remains a parallel/broken construct. 
 
+
+Update owners template to show correct IPs and Domains count 
+
+_______
+
+
+I now want when a fruit is created, to check through the existing services database for any service which has a field labeled “match_type” and matches “match_regex”. This will require the Fruits model to have the additional fields “match_type” and “match_regex”. In addition, Remove country field from fruits. 
+
+For an example, if a new fruit “guava” is created, with match_type “banner” and match_regex “\Gnginx”, I would want any service with data in the field banner that matches that regex to be updated to state that the fruit for that service is guava. 
+
+______
+
+
+
+Update services page to show Fruits, Fruit Type, and Owner as well as a link to any recipes associated with the fruit_Type that the service is assigned to 
+
+Update the owner_detail template services section to show the same columns as the services page, but only for services associated with that owner. Any service with a recipe should be highlighted a different color.
+
+
+Update the fruit_types template to show the number of services and recipes associated with it 
+
+Update the recipes template to show the number of services and owners associated with it. Remove preparation time. 

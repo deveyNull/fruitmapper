@@ -85,6 +85,8 @@ class OwnerUpdate(BaseModel):
 class OwnerResponse(OwnerBase):
     id: int
     created_at: datetime
+    service_count: Optional[int] = 0
+    ip_count: Optional[int] = 0
 
     class Config:
         from_attributes = True

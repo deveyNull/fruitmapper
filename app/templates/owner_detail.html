@@ -58,7 +58,82 @@
                             </div>
                         </div>
                     </section>
+                    <!-- IP Addresses and Domains -->
+                    <section aria-labelledby="owner-assets">
+                        <div class="bg-white shadow sm:rounded-lg">
+                            <div class="px-4 py-5 sm:p-6">
+                                <h2 id="owner-assets" class="text-lg leading-6 font-medium text-gray-900">Associated Assets</h2>
+                                <div class="mt-5 border-t border-gray-200">
+                                    <!-- IP Addresses -->
+                                    <div class="py-4">
+                                        <h3 class="text-md font-medium text-gray-700">IP Addresses</h3>
+                                        {% if owner.owned_ips %}
+                                        <div class="mt-2">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    {% for ip in owner.owned_ips %}
+                                                    <tr>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ ip.ip }}</td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ip.added_at.strftime('%Y-%m-%d') }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% else %}
+                                        <p class="mt-2 text-sm text-gray-500">No IP addresses registered.</p>
+                                        {% endif %}
+                                    </div>
 
+                                    <!-- Domains -->
+                                    <div class="py-4 border-t border-gray-200">
+                                        <h3 class="text-md font-medium text-gray-700">Domains</h3>
+                                        {% if owner.owned_domains %}
+                                        <div class="mt-2">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    {% for domain in owner.owned_domains %}
+                                                    <tr>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ domain.domain }}</td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ domain.added_at.strftime('%Y-%m-%d') }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% else %}
+                                        <p class="mt-2 text-sm text-gray-500">No domains registered.</p>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if request.user.is_admin %}
+                                    <div class="mt-4 flex space-x-3">
+                                        <button onclick="openAddIPModal()" 
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                            Add IP Address
+                                        </button>
+                                        <button onclick="openAddDomainModal()" 
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                            Add Domain
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                     <!-- Services -->
                     <section aria-labelledby="services-title">
                         <div class="bg-white shadow sm:rounded-lg">
@@ -151,7 +226,6 @@
 <div id="editModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <form id="editForm" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Edit Owner</h3>
                 <div class="mt-4 space-y-4">
@@ -184,6 +258,60 @@
             </div>
         </form>
     </div>
+    <div id="addIPModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <form id="addIPForm" method="POST" action="/owners/{{ owner.id }}/ips">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add IP Address</h3>
+                    <div class="mt-4">
+                        <label for="ip" class="block text-sm font-medium text-gray-700">IP Address</label>
+                        <input type="text" name="ip" id="ip" required
+                               pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
+                               placeholder="xxx.xxx.xxx.xxx"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                    <button type="button" onclick="closeAddIPModal()"
+                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Add IP
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Domain Modal -->
+    <div id="addDomainModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <form id="addDomainForm" method="POST" action="/owners/{{ owner.id }}/domains">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add Domain</h3>
+                    <div class="mt-4">
+                        <label for="domain" class="block text-sm font-medium text-gray-700">Domain Name</label>
+                        <input type="text" name="domain" id="domain" required
+                               pattern="^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$"
+                               placeholder="example.com"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                    <button type="button" onclick="closeAddDomainModal()"
+                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Add Domain
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endif %}
 {% endblock %}
@@ -198,13 +326,28 @@ function closeEditModal() {
     document.getElementById('editModal').classList.add('hidden');
 }
 
+function openAddIPModal() {
+    document.getElementById('addIPModal').classList.remove('hidden');
+}
+
+function closeAddIPModal() {
+    document.getElementById('addIPModal').classList.add('hidden');
+}
+
+function openAddDomainModal() {
+    document.getElementById('addDomainModal').classList.remove('hidden');
+}
+
+function closeAddDomainModal() {
+    document.getElementById('addDomainModal').classList.add('hidden');
+}
+
 function confirmDelete() {
     if (confirm('Are you sure you want to delete this owner? This cannot be undone.')) {
         fetch('/owners/{{ owner.id }}', {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'Content-Type': 'application/json'
             }
         }).then(response => {
             if (response.ok) {

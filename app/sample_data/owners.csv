@@ -1,6 +1,6 @@
-name,description,contact_info
-unknown, unknown, unknown@unk.org
-Acme Corp,Major technology provider,contact@acme.com
-TechGiant Inc,Global tech company,support@techgiant.com
-SecureNet,Network security provider,security@securenet.com
-DataCorp,Data center operator,ops@datacorp.com
+name,description,contact_info,ip_addresses,domains
+unknown,unknown,unknown@unk.org,,
+Acme Corp,Major technology provider,contact@acme.com,140.3.2.1|140.3.2.2|2.2.2.2,acme.org|acme.com
+TechGiant Inc,Global tech company,support@techgiant.com,192.168.1.1|192.168.1.2,techgiant.com|techgiant.net
+SecureNet,Network security provider,security@securenet.com,10.0.0.1|10.0.0.2,securenet.com
+DataCorp,Data center operator,ops@datacorp.com,172.16.1.1|172.16.1.2,datacorp.com|data-corp.net

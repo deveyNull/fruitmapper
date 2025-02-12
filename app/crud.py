@@ -12,7 +12,7 @@ import json
 from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner
 from passlib.hash import bcrypt
 from app import schemas
-from .schemas import ServiceList, ServiceResponse
+from .schemas import ServiceList, ServiceResponse, OwnerList, OwnerResponse
 
 
 # User operations
@@ -498,23 +498,74 @@ def get_owners(
     db: Session,
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None
-) -> List[Owner]:
-    query = db.query(Owner)
+    search: Optional[str] = None,
+    sort: Optional[str] = None,
+    direction: Optional[str] = "asc"
+) -> OwnerList:
+    # First create a subquery to count services for each owner
+    service_count = (
+        db.query(
+            Service.owner_id,
+            func.count(Service.id).label('service_count'),
+            func.count(Service.ip).label('ip_count')
+        )
+        .group_by(Service.owner_id)
+        .subquery()
+    )
+
+    # Main query including the counts
+    query = (
+        db.query(
+            Owner,
+            func.coalesce(service_count.c.service_count, 0).label('service_count'),
+            func.coalesce(service_count.c.ip_count, 0).label('ip_count')
+        )
+        .outerjoin(service_count, Owner.id == service_count.c.owner_id)
+    )
     
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
             or_(
                 Owner.name.ilike(search_filter),
-                Owner.description.ilike(search_filter)
+                Owner.description.ilike(search_filter),
+                Owner.contact_info.ilike(search_filter)
             )
         )
     
-    total = query.count()
-    owners = query.offset(skip).limit(limit).all()
+    # Handle sorting
+    if sort:
+        if sort == 'service_count':
+            order_col = service_count.c.service_count
+        elif sort == 'ip_count':
+            order_col = service_count.c.ip_count
+        else:
+            order_col = getattr(Owner, sort, Owner.name)
+            
+        if direction == "desc":
+            order_col = order_col.desc()
+        query = query.order_by(order_col)
+    else:
+        query = query.order_by(Owner.name)
     
-    return owners
+    total = query.count()
+    results = query.offset(skip).limit(limit).all()
+    
+    # Convert results to response objects with counts
+    owners = []
+    for owner, service_count, ip_count in results:
+        owner_dict = OwnerResponse.model_validate(owner)
+        owner_dict.service_count = service_count
+        owner_dict.ip_count = ip_count
+        owners.append(owner_dict)
+
+    return OwnerList(
+        items=owners,
+        total=total,
+        page=(skip // limit) + 1,
+        size=limit,
+        pages=(total + limit - 1) // limit
+    )
 
 def create_owner(db: Session, owner: schemas.OwnerCreate) -> Owner:
     db_owner = Owner(**owner.dict())

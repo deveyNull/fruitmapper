@@ -17,19 +17,22 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_owners(
     request: Request,
     search: Optional[str] = None,
+    sort: Optional[str] = "name",
+    direction: Optional[str] = "asc",
     page: int = 1,
-    page_size: int = 10,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """List all owners with optional search."""
+    page_size = 10
     skip = (page - 1) * page_size
     
     owners = crud.get_owners(
         db,
         skip=skip,
         limit=page_size,
-        search=search
+        search=search,
+        sort=sort,
+        direction=direction
     )
     
     return templates.TemplateResponse(
@@ -37,7 +40,10 @@ async def list_owners(
         {
             "request": request,
             "owners": owners,
-            "search": search
+            "search": search,
+            "current_user": current_user,
+            "sort": sort,
+            "direction": direction
         }
     )
 
