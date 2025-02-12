@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Services - Fruit Recipe Platform{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-semibold text-gray-900">Services</h1>
+            {% if request.user.is_admin %}
+            <div class="flex items-center space-x-4">
+                <a href="/services/upload" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Upload Services
+                </a>
+                <a href="/services/new"
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                    Add Service
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="mt-4 bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label for="owner" class="block text-sm font-medium text-gray-700">Owner</label>
+                        <select id="owner" name="owner_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All Owners</option>
+                            {% for owner in owners %}
+                            <option value="{{ owner.id }}" {% if selected_owner == owner.id %}selected{% endif %}>
+                                {{ owner.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="fruit" class="block text-sm font-medium text-gray-700">Device Type</label>
+                        <select id="fruit" name="fruit_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All Types</option>
+                            {% for fruit in fruits %}
+                            <option value="{{ fruit.id }}" {% if selected_fruit == fruit.id %}selected{% endif %}>
+                                {{ fruit.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
+                        <select id="country" name="country" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All Countries</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}" {% if selected_country == country %}selected{% endif %}>
+                                {{ country }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="asn" class="block text-sm font-medium text-gray-700">ASN</label>
+                        <select id="asn" name="asn" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All ASNs</option>
+                            {% for asn in asns %}
+                            <option value="{{ asn }}" {% if selected_asn == asn %}selected{% endif %}>
+                                {{ asn }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                        <input type="text" name="search" id="search" 
+                               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                               placeholder="Search services..."
+                               value="{{ search if search else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Table -->
+        <div class="mt-8 flex flex-col">
+            <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                    <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        IP:Port
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Device Type
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Owner
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Country/ASN
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Domain
+                                    </th>
+                                    <th scope="col" class="relative px-6 py-3">
+                                        <span class="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for service in services.items %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ service.ip }}:{{ service.port }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if service.fruit %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                            {{ service.fruit.name }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if service.owner %}
+                                        <a href="/owners/{{ service.owner.id }}" class="text-indigo-600 hover:text-indigo-900">
+                                            {{ service.owner.name }}
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ service.country }}</div>
+                                        <div class="text-sm text-gray-500">{{ service.asn }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ service.domain }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="/services/{{ service.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">View</a>
+                                        {% if request.user.is_admin %}
+                                        <a href="/services/{{ service.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if services.total > services.size %}
+        <div class="mt-4 flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if services.page > 1 %}
+                <a href="?page={{ services.page - 1 }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                {% if services.page * services.size < services.total %}
+                <a href="?page={{ services.page + 1 }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ownerSelect = document.getElementById('owner');
+    const fruitSelect = document.getElementById('fruit');
+    const countrySelect = document.getElementById('country');
+    const asnSelect = document.getElementById('asn');
+    const searchInput = document.getElementById('search');
+    let timeout = null;
+
+    function updateFilters() {
+        const params = new URLSearchParams(window.location.search);
+        
+        if (ownerSelect.value) params.set('owner_id', ownerSelect.value);
+        else params.delete('owner_id');
+        
+        if (fruitSelect.value) params.set('fruit_id', fruitSelect.value);
+        else params.delete('fruit_id');
+        
+        if (countrySelect.value) params.set('country', countrySelect.value);
+        else params.delete('country');
+        
+        if (asnSelect.value) params.set('asn', asnSelect.value);
+        else params.delete('asn');
+        
+        if (searchInput.value) params.set('search', searchInput.value);
+        else params.delete('search');
+        
+        window.location.search = params.toString();
+    }
+
+    ownerSelect.addEventListener('change', updateFilters);
+    fruitSelect.addEventListener('change', updateFilters);
+    countrySelect.addEventListener('change', updateFilters);
+    asnSelect.addEventListener('change', updateFilters);
+    
+    // Debounce search input
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(updateFilters, 500);
+    });
+});
+</script>
+{% endblock %}

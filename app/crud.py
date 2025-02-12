@@ -9,9 +9,11 @@ from typing import List, Optional, Dict
 from io import StringIO
 import json
 
-from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter
+from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner
 from passlib.hash import bcrypt
 from app import schemas
+from .schemas import ServiceList, ServiceResponse
+
 
 # User operations
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -488,3 +490,184 @@ def get_recipes_by_fruit_type(
     
     recipes = query.offset(skip).limit(limit).all()
     return recipes
+
+def get_owner(db: Session, owner_id: int) -> Optional[Owner]:
+    return db.query(Owner).filter(Owner.id == owner_id).first()
+
+def get_owners(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None
+) -> List[Owner]:
+    query = db.query(Owner)
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                Owner.name.ilike(search_filter),
+                Owner.description.ilike(search_filter)
+            )
+        )
+    
+    total = query.count()
+    owners = query.offset(skip).limit(limit).all()
+    
+    return owners
+
+def create_owner(db: Session, owner: schemas.OwnerCreate) -> Owner:
+    db_owner = Owner(**owner.dict())
+    db.add(db_owner)
+    db.commit()
+    db.refresh(db_owner)
+    return db_owner
+
+def update_owner(db: Session, owner_id: int, owner: schemas.OwnerUpdate) -> Optional[Owner]:
+    db_owner = get_owner(db, owner_id)
+    if db_owner is None:
+        return None
+    
+    update_data = owner.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_owner, field, value)
+    
+    db.commit()
+    db.refresh(db_owner)
+    return db_owner
+
+def delete_owner(db: Session, owner_id: int) -> bool:
+    owner = get_owner(db, owner_id)
+    if owner is None:
+        return False
+    
+    db.delete(owner)
+    db.commit()
+    return True
+
+# Service operations
+def get_service(db: Session, service_id: int) -> Optional[Service]:
+    return db.query(Service).filter(Service.id == service_id).first()
+
+def get_services(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    owner_id: Optional[int] = None,
+    fruit_id: Optional[int] = None,
+    ip: Optional[str] = None,
+    port: Optional[int] = None,
+    country: Optional[str] = None,
+    asn: Optional[str] = None,
+    domain: Optional[str] = None,
+    search: Optional[str] = None
+) -> ServiceList:
+    query = db.query(Service)
+    
+    if owner_id:
+        query = query.filter(Service.owner_id == owner_id)
+    if fruit_id:
+        query = query.filter(Service.fruit_id == fruit_id)
+    if ip:
+        query = query.filter(Service.ip.ilike(f"%{ip}%"))
+    if port:
+        query = query.filter(Service.port == port)
+    if country:
+        query = query.filter(Service.country.ilike(f"%{country}%"))
+    if asn:
+        query = query.filter(Service.asn.ilike(f"%{asn}%"))
+    if domain:
+        query = query.filter(Service.domain.ilike(f"%{domain}%"))
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                Service.banner_data.ilike(search_filter),
+                Service.domain.ilike(search_filter),
+                Service.country.ilike(search_filter),
+                Service.asn.ilike(search_filter)
+            )
+        )
+    
+    total = query.count()
+    services = query.offset(skip).limit(limit).all()
+    
+    return ServiceList(
+        items=services,
+        total=total,
+        page=(skip // limit) + 1,
+        size=limit
+    )
+
+def create_service(db: Session, service: schemas.ServiceCreate) -> Service:
+    # Convert http_data to JSON string if it's provided
+    service_data = service.dict()
+    if service_data.get('http_data'):
+        service_data['http_data'] = json.dumps(service_data['http_data'])
+    
+    db_service = Service(**service_data)
+    db.add(db_service)
+    db.commit()
+    db.refresh(db_service)
+    return db_service
+
+def update_service(db: Session, service_id: int, service: schemas.ServiceUpdate) -> Optional[Service]:
+    db_service = get_service(db, service_id)
+    if db_service is None:
+        return None
+    
+    update_data = service.dict(exclude_unset=True)
+    if 'http_data' in update_data and update_data['http_data']:
+        update_data['http_data'] = json.dumps(update_data['http_data'])
+    
+    for field, value in update_data.items():
+        setattr(db_service, field, value)
+    
+    db.commit()
+    db.refresh(db_service)
+    return db_service
+
+def delete_service(db: Session, service_id: int) -> bool:
+    service = get_service(db, service_id)
+    if service is None:
+        return False
+    
+    db.delete(service)
+    db.commit()
+    return True
+
+# Additional utility functions
+def get_services_by_owner(
+    db: Session,
+    owner_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Service]:
+    return (db.query(Service)
+            .filter(Service.owner_id == owner_id)
+            .offset(skip)
+            .limit(limit)
+            .all())
+
+def get_services_by_fruit(
+    db: Session,
+    fruit_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Service]:
+    return (db.query(Service)
+            .filter(Service.fruit_id == fruit_id)
+            .offset(skip)
+            .limit(limit)
+            .all())
+
+
+def get_unique_asns(db: Session) -> List[str]:
+    """Get list of unique ASNs from services table."""
+    asns = db.query(Service.asn).distinct().order_by(Service.asn).all()
+    return [asn[0] for asn in asns if asn[0]]
+
+def get_unique_countries(db: Session) -> List[str]:
+    """Get list of unique countries from services table."""
+    countries = db.query(Service.country).distinct().order_by(Service.country).all()
+    return [country[0] for country in countries if country[0]]

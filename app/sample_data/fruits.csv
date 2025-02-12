@@ -1,4 +1,5 @@
 name,fruit_type,country_of_origin,date_picked
+unknown,unknown,unknown,2000-09-11
 Orange,citrus,Spain,2024-01-15
 Lemon,citrus,Italy,2024-01-20
 Grapefruit,citrus,United States,2024-01-18

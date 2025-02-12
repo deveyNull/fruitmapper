@@ -2,7 +2,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from models import FruitType, Fruit, Recipe
+from models import FruitType, Fruit, Recipe, Owner, Service
 
 # Get the absolute path to the database file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +55,25 @@ def check_database():
             print("Compatible Fruit Types:", ', '.join(ft.name for ft in recipe.fruit_types))
             print(f"Preparation Time: {recipe.preparation_time} minutes")
             print("Instructions:", recipe.instructions.replace('\n', '\n\t'))
+        print("\n=== Owners ===")
+        owners = db.query(Owner).all()
+        if not owners:
+            print("No owners found in database!")
+        for owner in owners:
+            print(f"\nRecipe ID: {owner.id}")
+            print(f"Name: {owner.name}")
+        print("\n===Services===")
+        services = db.query(Service).all()
+        if not services:
+            print("No services found in database!")
+        for service in services:
+            print(f"\nService ID: {service.id}")
+            print(f"IP:Port {service.ip} {service.port}")
+            print(f"\nFruit ID: {fruit.id}")
+            print(f"\nOwner ID: {owner.id}")
+
+
+
 
     except Exception as e:
         print(f"Error checking database: {e}")

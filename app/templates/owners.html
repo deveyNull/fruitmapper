@@ -1,0 +1,224 @@
+# File: app/templates/owners.html
+{% extends "base.html" %}
+
+{% block title %}Owners - Fruit Recipe Platform{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-semibold text-gray-900">Owners</h1>
+            {% if request.user.is_admin %}
+            <div class="flex items-center space-x-4">
+                <button onclick="openCreateModal()" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Add Owner
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mt-4">
+            <div class="max-w-xl">
+                <label for="search" class="sr-only">Search owners</label>
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <!-- Search Icon -->
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" 
+                           name="search" 
+                           id="search" 
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Search owners..."
+                           value="{{ search if search else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Owners Grid -->
+        <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for owner in owners.items %}
+            <div class="bg-white shadow rounded-lg divide-y divide-gray-200">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">
+                                {{ owner.name }}
+                            </h3>
+                            {% if owner.services|length > 0 %}
+                            <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {{ owner.services|length }} services
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if owner.description %}
+                    <p class="mt-2 text-sm text-gray-500">
+                        {{ owner.description }}
+                    </p>
+                    {% endif %}
+                    {% if owner.contact_info %}
+                    <p class="mt-2 text-sm text-gray-500">
+                        Contact: {{ owner.contact_info }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex justify-between">
+                        <a href="/owners/{{ owner.id }}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                            View Details
+                        </a>
+                        {% if request.user.is_admin %}
+                        <div class="flex space-x-2">
+                            <button onclick="openEditModal('{{ owner.id }}')"
+                                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Edit
+                            </button>
+                            <button onclick="confirmDelete('{{ owner.id }}')"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
+                                Delete
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if owners.total > owners.size %}
+        <div class="mt-6 flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if owners.page > 1 %}
+                <a href="?page={{ owners.page - 1 }}{% if search %}&search={{ search }}{% endif %}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                {% if owners.page * owners.size < owners.total %}
+                <a href="?page={{ owners.page + 1 }}{% if search %}&search={{ search }}{% endif %}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="ownerModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <form id="ownerForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">
+                    Create Owner
+                </h3>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="name" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" id="description" rows="3"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label for="contact_info" class="block text-sm font-medium text-gray-700">Contact Information</label>
+                        <input type="text" name="contact_info" id="contact_info"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                <button type="button" onclick="closeModal()"
+                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentOwnerId = null;
+
+function openCreateModal() {
+    currentOwnerId = null;
+    document.getElementById('modalTitle').textContent = 'Create Owner';
+    document.getElementById('ownerForm').reset();
+    document.getElementById('ownerForm').action = "/owners";
+    document.getElementById('ownerModal').classList.remove('hidden');
+}
+
+function openEditModal(ownerId) {
+    currentOwnerId = ownerId;
+    document.getElementById('modalTitle').textContent = 'Edit Owner';
+    
+    fetch(`/owners/${ownerId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('name').value = data.name;
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('contact_info').value = data.contact_info || '';
+            document.getElementById('ownerForm').action = `/owners/${ownerId}`;
+            document.getElementById('ownerModal').classList.remove('hidden');
+        });
+}
+
+function closeModal() {
+    document.getElementById('ownerModal').classList.add('hidden');
+}
+
+function confirmDelete(ownerId) {
+    if (confirm('Are you sure you want to delete this owner? This cannot be undone.')) {
+        fetch(`/owners/${ownerId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Could not delete owner. They may have associated services.');
+            }
+        });
+    }
+}
+
+// Search functionality
+const searchInput = document.getElementById('search');
+let timeout = null;
+
+searchInput.addEventListener('input', function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (this.value) {
+            params.set('search', this.value);
+        } else {
+            params.delete('search');
+        }
+        window.location.search = params.toString();
+    }, 500);
+});
+</script>
+{% endblock %}

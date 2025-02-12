@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, constr, validator, IPvAnyAddress
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import json
 
 # Base Response Models
 class SuccessResponse(BaseModel):
@@ -67,6 +68,95 @@ class FruitTypeResponse(FruitTypeBase):
 # Alias for backwards compatibility
 FruitType = FruitTypeResponse
 
+# Owner Models
+class OwnerBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    contact_info: Optional[str] = None
+
+class OwnerCreate(OwnerBase):
+    pass
+
+class OwnerUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    contact_info: Optional[str] = None
+
+class OwnerResponse(OwnerBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Service Models
+class ServiceBase(BaseModel):
+    ip: str
+    port: int
+    asn: Optional[str] = None
+    country: Optional[str] = None
+    domain: Optional[str] = None
+    banner_data: Optional[str] = None
+    http_data: Optional[Dict[str, Any]] = None
+    fruit_id: Optional[int] = None
+    owner_id: Optional[int] = None
+
+    @validator('port')
+    def validate_port(cls, v):
+        if not 0 <= v <= 65535:
+            raise ValueError('Port must be between 0 and 65535')
+        return v
+
+    @validator('ip')
+    def validate_ip(cls, v):
+        try:
+            IPvAnyAddress(v)
+            return v
+        except ValueError:
+            raise ValueError('Invalid IP address')
+
+class ServiceCreate(ServiceBase):
+    pass
+
+class ServiceUpdate(BaseModel):
+    ip: Optional[str] = None
+    port: Optional[int] = None
+    asn: Optional[str] = None
+    country: Optional[str] = None
+    domain: Optional[str] = None
+    banner_data: Optional[str] = None
+    http_data: Optional[Dict[str, Any]] = None
+    fruit_id: Optional[int] = None
+    owner_id: Optional[int] = None
+
+    @validator('port')
+    def validate_port(cls, v):
+        if v is not None and not 0 <= v <= 65535:
+            raise ValueError('Port must be between 0 and 65535')
+        return v
+
+    @validator('ip')
+    def validate_ip(cls, v):
+        if v is not None:
+            try:
+                IPvAnyAddress(v)
+                return v
+            except ValueError:
+                raise ValueError('Invalid IP address')
+        return v
+
+class ServiceResponseBase(ServiceBase):
+    id: int
+    timestamp: datetime
+    created_at: datetime
+    updated_at: datetime
+    owner: Optional[OwnerResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+
 # Fruit Models
 class FruitBase(BaseModel):
     name: str
@@ -86,9 +176,11 @@ class FruitUpdate(BaseModel):
 class FruitResponse(FruitBase):
     id: int
     fruit_type: FruitTypeResponse
+    services: List[ServiceResponseBase] = []
 
     class Config:
         from_attributes = True
+   
 
 # Alias for backwards compatibility
 Fruit = FruitResponse
@@ -127,6 +219,20 @@ class FruitList(PaginatedResponse):
 
 class RecipeList(PaginatedResponse):
     items: List[RecipeResponse]
+
+
+class ServiceResponse(ServiceResponseBase):
+    fruit: Optional[FruitResponse] = None
+
+    class Config:
+        from_attributes = True
+
+# Add to your Typed List Response Models section:
+class ServiceList(PaginatedResponse):
+    items: List[ServiceResponse]
+
+class OwnerList(PaginatedResponse):
+    items: List[OwnerResponse]
 
 # Group Models
 class GroupBase(BaseModel):
@@ -208,3 +314,6 @@ class TokenData(BaseModel):
 class PasswordChange(BaseModel):
     old_password: str
     new_password: str
+
+FruitResponse.update_forward_refs()
+ServiceResponse.update_forward_refs()

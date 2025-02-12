@@ -20,6 +20,8 @@ from app.utils.messages import get_flashed_messages
 from app.database import engine, Base, get_db
 from app.config import settings
 from app.routes import auth, fruits, fruit_types, recipes, groups, filters
+from app.routes import services, owners
+
 from app.dependencies import get_current_user
 import app.crud as crud
 
@@ -142,6 +144,20 @@ app.include_router(
     filters.router,
     prefix="/filters",  # This will handle /filters routes
     tags=["filters"]
+)
+
+
+# Add these to your router includes:
+app.include_router(
+    services.router,
+    prefix="/services",
+    tags=["services"]
+)
+
+app.include_router(
+    owners.router,
+    prefix="/owners",
+    tags=["owners"]
 )
 
 @app.get("/", response_class=HTMLResponse)
