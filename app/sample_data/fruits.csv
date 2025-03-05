@@ -1,19 +1,11 @@
-name,fruit_type,country_of_origin,date_picked
-unknown,unknown,unknown,2000-09-11
-Orange,citrus,Spain,2024-01-15
-Lemon,citrus,Italy,2024-01-20
-Grapefruit,citrus,United States,2024-01-18
-Blueberry,berry,United States,2024-01-25
-Strawberry,berry,Mexico,2024-01-22
-Raspberry,berry,Chile,2024-01-21
-Peach,stone fruit,Spain,2024-01-10
-Plum,stone fruit,France,2024-01-12
-Mango,tropical,India,2024-01-05
-Pineapple,tropical,Costa Rica,2024-01-08
-Apple,pome,New Zealand,2024-01-15
-Pear,pome,Argentina,2024-01-17
-Cantaloupe,melon,Spain,2024-01-20
-Honeydew,melon,Mexico,2024-01-22
-moonfish,unknown,unknown,2024-01-22
-redfish,unknown,unknown,2024-01-22
-anger,unknown,unknown,2024-01-22
+name,fruit_type,match_type,match_regex,date_picked
+nginx,nginx,banner,nginx,2024-01-15
+nginx2,nginx,banner,nginx,2024-01-15
+apache,apache,banner,apache,2024-01-01
+Lemon,citrus,banner,lemon,2024-01-20
+Grapefruit,citrus,banner,grapefruit,2024-01-18
+Blueberry,berry,banner,snjnsd,2024-01-25
+Strawberry,berry,banner,sdsdsadsd,2024-01-22
+Raspberry,berry,banner,server,2024-01-21
+Peach,stone fruit,html,sssssss,2024-01-10
+

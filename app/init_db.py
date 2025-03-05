@@ -27,6 +27,16 @@ def load_fruit_types(filename):
                 description=row['description']
             )
             session.add(fruit_type)
+    ## TODO: this is a silly hack to put unknown into the Database early
+
+    fruit = Fruit(
+                name='unknown',
+                match_type='unknown',
+                match_regex='unknown',
+                date_picked=datetime.strptime('1970-01-01', '%Y-%m-%d'),
+                fruit_type_id=1
+            )
+    session.add(fruit)
     session.commit()
 
 def load_fruits(filename):
@@ -39,10 +49,10 @@ def load_fruits(filename):
             if not fruit_type:
                 print(f"Warning: Fruit type {row['fruit_type']} not found")
                 continue
-            
             fruit = Fruit(
                 name=row['name'],
-                country_of_origin=row['country_of_origin'],
+                match_type=row['match_type'],
+                match_regex=row['match_regex'],
                 date_picked=datetime.strptime(row['date_picked'], '%Y-%m-%d'),
                 fruit_type_id=fruit_type.id
             )
@@ -165,10 +175,11 @@ def init_db():
     
     # Load sample data
     load_fruit_types('./sample_data/fruit_types.csv')
-    load_fruits('./sample_data/fruits.csv')
     load_recipes('./sample_data/recipes.csv')
     load_owners('./sample_data/owners.csv')
     load_services('./sample_data/services.csv')
+    load_fruits('./sample_data/fruits.csv')
+
 
 if __name__ == '__main__':
     init_db()

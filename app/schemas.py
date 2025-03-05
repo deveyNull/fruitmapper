@@ -187,23 +187,22 @@ class ServiceResponseBase(ServiceBase):
     class Config:
         from_attributes = True
 
-
-
-# Fruit Models
 class FruitBase(BaseModel):
     name: str
-    country_of_origin: str
     date_picked: datetime
     fruit_type_id: int
+    match_type: Optional[str] = None
+    match_regex: Optional[str] = None
 
 class FruitCreate(FruitBase):
     pass
 
 class FruitUpdate(BaseModel):
     name: Optional[str] = None
-    country_of_origin: Optional[str] = None
     date_picked: Optional[datetime] = None
     fruit_type_id: Optional[int] = None
+    match_type: Optional[str] = None
+    match_regex: Optional[str] = None
 
 class FruitResponse(FruitBase):
     id: int
@@ -212,6 +211,9 @@ class FruitResponse(FruitBase):
 
     class Config:
         from_attributes = True
+
+# Alias for backwards compatibility
+Fruit = FruitResponse
    
 class ServiceResponse(ServiceBasicResponse):
     fruit: Optional[FruitResponse] = None

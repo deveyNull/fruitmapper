@@ -5,6 +5,8 @@ from datetime import datetime
 import ipaddress
 from sqlalchemy.orm import validates
 from sqlalchemy import event, inspect, UniqueConstraint, Index
+from sqlalchemy import and_, or_
+
 
 
 
@@ -139,6 +141,7 @@ class Service(Base):
         if 'fruit' in kwargs and kwargs['fruit'] is not None:
             self.fruit_type_id = kwargs['fruit'].fruit_type_id
 
+    #TODO this is where I should do Ownership by /24s and by domain+subdomain things. Obviously
     @validates('ip', 'domain')
     def validate_ownership_fields(self, key, value):
         """Auto-update owner based on IP or domain match"""
@@ -174,9 +177,10 @@ class Fruit(Base):
     
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
-    country_of_origin = Column(String(100))
     date_picked = Column(DateTime)
     fruit_type_id = Column(Integer, ForeignKey('fruit_types.id'), nullable=False)
+    match_type = Column(String(50))  # banner, domain, etc.
+    match_regex = Column(String(500))  # The regex pattern to match
     
     fruit_type = relationship('FruitType', back_populates='fruits')
     services = relationship('Service', back_populates='fruit')
@@ -273,15 +277,138 @@ def update_services_for_new_domain(mapper, connection, target):
         for service in services:
             service.owner_id = target.owner_id
 
-# Event listeners
+@event.listens_for(Fruit, 'after_insert')
+def match_services_on_create(mapper, connection, target):
+    """Match and update services when a new fruit is created"""
+    if target.match_type and target.match_regex:
+        try:
+            session = inspect(target).session
+            if session:
+                import re
+                pattern = re.compile(target.match_regex)
+                
+                if target.match_type == 'banner':
+                    matching_services = session.query(Service).filter(
+                        and_(
+                            Service.banner_data.isnot(None),
+                            Service.fruit_id.is_(None)
+                        )
+                    ).all()
+                    for service in matching_services:
+                        if service.banner_data and pattern.search(service.banner_data):
+                            service.fruit_id = target.id
+                            service.fruit_type_id = target.fruit_type_id
+                
+                elif target.match_type == 'domain':
+                    matching_services = session.query(Service).filter(
+                        and_(
+                            Service.domain.isnot(None),
+                            Service.fruit_id.is_(None)
+                        )
+                    ).all()
+                    for service in matching_services:
+                        if service.domain and pattern.search(service.domain):
+                            service.fruit_id = target.id
+                            service.fruit_type_id = target.fruit_type_id
+                
+        except re.error:
+            # Log error but don't interrupt the transaction
+            print(f"Invalid regex pattern for fruit {target.name}: {target.match_regex}")
+
 @event.listens_for(Fruit, 'after_update')
-def update_service_fruit_types(mapper, connection, target):
-    """Update all related services when a fruit's type changes"""
-    if inspect(target).attrs.fruit_type_id.history.has_changes():
-        # Using the Session associated with the target
-        session = inspect(target).session
-        if session:
-            # Update all related services
-            for service in target.services:
-                service.fruit_type_id = target.fruit_type_id
-            # No need to commit here as it's part of the ongoing transaction
+def update_service_matches(mapper, connection, target):
+    """Update service matches when fruit matching criteria changes"""
+    session = inspect(target).session
+    if not session:
+        return
+
+    # Check what changed
+    inspect_target = inspect(target)
+    match_type_changed = inspect_target.attrs.match_type.history.has_changes()
+    match_regex_changed = inspect_target.attrs.match_regex.history.has_changes()
+    fruit_type_changed = inspect_target.attrs.fruit_type_id.history.has_changes()
+
+    # If matching criteria changed, re-evaluate all services
+    if match_type_changed or match_regex_changed:
+        try:
+            # Clear existing matches
+            session.query(Service).filter(Service.fruit_id == target.id).update(
+                {"fruit_id": None, "fruit_type_id": None}
+            )
+
+            if target.match_type and target.match_regex:
+                import re
+                pattern = re.compile(target.match_regex)
+                
+                if target.match_type == 'banner':
+                    matching_services = session.query(Service).filter(
+                        Service.banner_data.isnot(None)
+                    ).all()
+                    for service in matching_services:
+                        if service.banner_data and pattern.search(service.banner_data):
+                            service.fruit_id = target.id
+                            service.fruit_type_id = target.fruit_type_id
+                
+                elif target.match_type == 'domain':
+                    matching_services = session.query(Service).filter(
+                        Service.domain.isnot(None)
+                    ).all()
+                    for service in matching_services:
+                        if service.domain and pattern.search(service.domain):
+                            service.fruit_id = target.id
+                            service.fruit_type_id = target.fruit_type_id
+                
+        except re.error:
+            print(f"Invalid regex pattern for fruit {target.name}: {target.match_regex}")
+    
+    # If only fruit_type changed, update existing services
+    elif fruit_type_changed:
+        for service in target.services:
+            service.fruit_type_id = target.fruit_type_id
+
+@event.listens_for(Service, 'after_update')
+def check_service_matches(mapper, connection, target):
+    """Check if service matches any fruits when its data changes"""
+    session = inspect(target).session
+    if not session:
+        return
+
+    inspect_target = inspect(target)
+    banner_changed = inspect_target.attrs.banner_data.history.has_changes()
+    domain_changed = inspect_target.attrs.domain.history.has_changes()
+
+    if not (banner_changed or domain_changed):
+        return
+
+    # Clear existing fruit association if any
+    target.fruit_id = None
+    target.fruit_type_id = None
+
+    # Check all fruits for matches
+    fruits = session.query(Fruit).filter(
+        and_(
+            Fruit.match_type.isnot(None),
+            Fruit.match_regex.isnot(None)
+        )
+    ).all()
+
+    for fruit in fruits:
+        try:
+            import re
+            pattern = re.compile(fruit.match_regex)
+            
+            if fruit.match_type == 'banner' and target.banner_data:
+                if pattern.search(target.banner_data):
+                    target.fruit_id = fruit.id
+                    target.fruit_type_id = fruit.fruit_type_id
+                    break
+            
+            elif fruit.match_type == 'domain' and target.domain:
+                if pattern.search(target.domain):
+                    target.fruit_id = fruit.id
+                    target.fruit_type_id = fruit.fruit_type_id
+                    break
+                    
+        except re.error:
+            print(f"Invalid regex pattern for fruit {fruit.name}: {fruit.match_regex}")
+            continue

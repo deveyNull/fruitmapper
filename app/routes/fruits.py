@@ -20,7 +20,8 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_fruits(
     request: Request,
     fruit_type_id: Optional[int] = None,
-    country: Optional[str] = None,
+    match_type: Optional[str] = None,
+    match_regex: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
     db: Session = Depends(get_db),
@@ -37,25 +38,19 @@ async def list_fruits(
         skip=skip,
         limit=page_size,
         fruit_type_id=fruit_type_id,
-        country=country,
         search=search
     )
     
     # Get fruit types for filter dropdown
     fruit_types = crud.get_fruit_types(db).items
-    
-    # Get unique countries for filter dropdown
-    countries = crud.get_fruit_countries(db)
-    
+        
     return templates.TemplateResponse(
         "fruits.html",
         {
             "request": request,
             "fruits": fruits,
             "fruit_types": fruit_types,
-            "countries": countries,
             "selected_type": fruit_type_id,
-            "selected_country": country,
             "search": search,
             "current_page": page
         }

@@ -13,6 +13,7 @@ from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Servi
 from passlib.hash import bcrypt
 from app import schemas
 from .schemas import ServiceList, ServiceResponse, OwnerList, OwnerResponse
+import re
 
 
 # User operations
@@ -187,10 +188,6 @@ def get_fruits(
         pages=pages
     )
 
-def get_fruit_countries(db: Session) -> List[str]:
-    """Get list of all unique countries that have fruits."""
-    return [r[0] for r in db.query(Fruit.country_of_origin).distinct().all()]
-
 def get_fruits_by_type(
     db: Session,
     fruit_type_id: int,
@@ -204,13 +201,47 @@ def get_fruits_by_type(
             .all())
 
 def create_fruit(db: Session, fruit: schemas.FruitCreate) -> Fruit:
+    # Validate fruit type exists
     if not get_fruit_type(db, fruit.fruit_type_id):
         raise HTTPException(400, "Fruit type not found")
     
+    # Create the fruit
     db_fruit = Fruit(**fruit.dict())
     db.add(db_fruit)
     db.commit()
     db.refresh(db_fruit)
+    
+    # Match existing services if match_type and match_regex are provided
+    if fruit.match_type and fruit.match_regex:
+        try:
+            pattern = re.compile(fruit.match_regex)
+            print(pattern)
+            # Query services based on match_type
+            if fruit.match_type == 'banner':
+                matching_services = db.query(Service).filter(
+                    Service.banner_data.isnot(None)
+                ).all()
+                for service in matching_services:
+                    print(service.banner_data)
+                    if service.banner_data and pattern.search(service.banner_data):
+                        service.fruit_id = db_fruit.id
+                        service.fruit_type_id = db_fruit.fruit_type_id
+            
+            elif fruit.match_type == 'html_data':
+                matching_services = db.query(Service).filter(
+                    Service.html.isnot(None)
+                ).all()
+                for service in matching_services:
+                    if service.html_data and pattern.search(service.html_data):
+                        service.fruit_id = db_fruit.id
+                        service.fruit_type_id = db_fruit.fruit_type_id
+            
+            # Add more match_types as needed
+            
+            db.commit()
+        except re.error as e:
+            raise HTTPException(400, f"Invalid regex pattern: {str(e)}")
+    
     return db_fruit
 
 def update_fruit(
@@ -223,11 +254,46 @@ def update_fruit(
         raise HTTPException(404, "Fruit not found")
     
     update_data = fruit_update.dict(exclude_unset=True)
-    if 'fruit_type_id' in update_data and not get_fruit_type(db, update_data['fruit_type_id']):
-        raise HTTPException(400, "Fruit type not found")
+    if 'fruit_type_id' in update_data:
+        if not get_fruit_type(db, update_data['fruit_type_id']):
+            raise HTTPException(400, "Fruit type not found")
     
+    # Update fruit fields
     for field, value in update_data.items():
         setattr(db_fruit, field, value)
+    
+    # Re-match services if match_type or match_regex was updated
+    if ('match_type' in update_data or 'match_regex' in update_data) and db_fruit.match_type and db_fruit.match_regex:
+        try:
+            # Clear existing fruit matches
+            db.query(Service).filter(Service.fruit_id == fruit_id).update(
+                {"fruit_id": None, "fruit_type_id": None}
+            )
+            
+            pattern = re.compile(db_fruit.match_regex)
+            # Query services based on match_type
+            if db_fruit.match_type == 'banner':
+                matching_services = db.query(Service).filter(
+                    Service.banner_data.isnot(None)
+                ).all()
+                for service in matching_services:
+                    if service.banner_data and pattern.search(service.banner_data):
+                        service.fruit_id = db_fruit.id
+                        service.fruit_type_id = db_fruit.fruit_type_id
+            
+            elif db_fruit.match_type == 'domain':
+                matching_services = db.query(Service).filter(
+                    Service.domain.isnot(None)
+                ).all()
+                for service in matching_services:
+                    if service.domain and pattern.search(service.domain):
+                        service.fruit_id = db_fruit.id
+                        service.fruit_type_id = db_fruit.fruit_type_id
+            
+            # Add more match_types as needed
+            
+        except re.error as e:
+            raise HTTPException(400, f"Invalid regex pattern: {str(e)}")
     
     db.commit()
     db.refresh(db_fruit)

@@ -1,6 +1,8 @@
 name,description
 unknown,science doesnt know what this is
 citrus,Fruits with high citric acid content and segmented flesh
+nginx,generic webserver
+apache,apache server
 berry,Small pulpy fruits without stones
 stone fruit,Fruits with fleshy exteriors and hard pits containing seeds
 tropical,Fruits native to tropical and subtropical regions
