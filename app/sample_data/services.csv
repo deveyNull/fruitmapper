@@ -1,0 +1,9 @@
+ip,port,asn,country,domain,banner_data,fruit_id,owner_id
+192.168.1.100,80,AS15169,United States,web.acme.com,"Apache/2.4.41 (Ubuntu)",unknown,unknown
+192.168.1.101,443,AS15169,United States,secure.acme.com,"nginx/1.18.0",unknown,unknown
+192.168.1.102,22,AS16509,Canada,ssh.techgiant.com,"OpenSSH 8.2p1",unknown,unknown
+192.168.1.103,8080,AS16509,Canada,app.techgiant.com,"Tomcat 9.0.45",unknown,unknown
+192.168.1.104,3389,AS14618,United Kingdom,rdp.securenet.com,"Microsoft Terminal Services",unknown,unknown
+192.168.1.105,21,AS14618,United Kingdom,ftp.securenet.com,"vsftpd 3.0.3",unknown,unknown
+192.168.1.106,25,AS13335,Germany,mail.datacorp.com,"Postfix",unknown,unknown
+192.168.1.107,5432,AS13335,Germany,db.datacorp.com,"PostgreSQL 13.4",unknown,unknown

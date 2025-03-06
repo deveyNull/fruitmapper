@@ -1,0 +1,3 @@
+venv
+/app/fruit_platform.db
+*.pyc

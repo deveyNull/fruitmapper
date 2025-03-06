@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Filters - Fruit Recipe Platform{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-semibold text-gray-900">Saved Filters</h1>
+            <div class="flex items-center space-x-4">
+                <button type="button"
+                        onclick="saveCurrentFilter()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Save Current Filter
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Groups -->
+        <div class="mt-8 space-y-8">
+            <!-- Personal Filters -->
+            <div>
+                <h2 class="text-lg font-medium text-gray-900">Personal Filters</h2>
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for filter in personal_filters %}
+                    <div class="bg-white shadow rounded-lg overflow-hidden">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900">{{ filter.name }}</h3>
+                                    <p class="mt-1 text-sm text-gray-500">{{ filter.description }}</p>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    Personal
+                                </span>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium text-gray-500">Filter Criteria:</h4>
+                                <div class="mt-2 space-y-2">
+                                    {% for criterion in filter.filter_criteria.criteria %}
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <span class="font-medium">{{ criterion.field }}</span>
+                                        <span class="mx-2">{{ criterion.operator }}</span>
+                                        <span>{{ criterion.value }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium text-gray-500">Visible Columns:</h4>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    {% for column in filter.visible_columns %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ column }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-4 sm:px-6 bg-gray-50 flex justify-between items-center">
+                            <div class="flex space-x-2">
+                                <button type="button"
+                                        onclick="applyFilter('{{ filter.id }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                    Apply
+                                </button>
+                                <button type="button"
+                                        onclick="shareFilter('{{ filter.id }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Share
+                                </button>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button type="button"
+                                        onclick="editFilter('{{ filter.id }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        onclick="deleteFilter('{{ filter.id }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Shared Filters -->
+            <div>
+                <h2 class="text-lg font-medium text-gray-900">Shared with Me</h2>
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for filter in shared_filters %}
+                    <div class="bg-white shadow rounded-lg overflow-hidden">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900">{{ filter.name }}</h3>
+                                    <p class="mt-1 text-sm text-gray-500">{{ filter.description }}</p>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Shared by {{ filter.user.username }}
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <span class="text-sm text-gray-500">
+                                    Shared with {{ filter.group.name }}
+                                </span>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium text-gray-500">Filter Criteria:</h4>
+                                <div class="mt-2 space-y-2">
+                                    {% for criterion in filter.filter_criteria.criteria %}
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <span class="font-medium">{{ criterion.field }}</span>
+                                        <span class="mx-2">{{ criterion.operator }}</span>
+                                        <span>{{ criterion.value }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium text-gray-500">Visible Columns:</h4>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    {% for column in filter.visible_columns %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ column }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-4 sm:px-6 bg-gray-50">
+                            <button type="button"
+                                    onclick="applyFilter('{{ filter.id }}')"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Filter Modal -->
+<div id="saveFilterModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <form id="filterForm" method="POST">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Save Filter</h3>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="filterName" class="block text-sm font-medium text-gray-700">Filter Name</label>
+                        <input type="text" name="name" id="filterName" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="filterDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" id="filterDescription" rows="3"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label for="shareWithGroup" class="block text-sm font-medium text-gray-700">Share with Group (Optional)</label>
+                        <select name="group_id" id="shareWithGroup"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Don't share</option>
+                            {% for group in user_groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                <button type="button"
+                        onclick="closeModal('saveFilterModal')"
+                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function saveCurrentFilter() {
+    // Get current filter criteria from URL
+    const params = new URLSearchParams(window.location.search);
+    const criteria = {
+        fruit_type: params.get('fruit_type'),
+        country: params.get('country'),
+        date_from: params.get('date_from'),
+        date_to: params.get('date_to')
+    };
+    
+    // Store current criteria in hidden input
+    const filterCriteriaInput = document.createElement('input');
+    filterCriteriaInput.type = 'hidden';
+    filterCriteriaInput.name = 'filter_criteria';
+    filterCriteriaInput.value = JSON.stringify(criteria);
+    document.getElementById('filterForm').appendChild(filterCriteriaInput);
+    
+    // Show modal
+    document.getElementById('saveFilterModal').classList.remove('hidden');
+}
+
+function applyFilter(filterId) {
+    fetch(`/api/v1/filters/${filterId}`)
+        .then(response => response.json())
+        .then(filter => {
+            const params = new URLSearchParams();
+            filter.filter_criteria.criteria.forEach(criterion => {
+                params.set(criterion.field, criterion.value);
+            });
+            window.location.search = params.toString();
+        });
+}
+
+function shareFilter(filterId) {
+    document.getElementById('shareWithGroup').value = '';
+    document.getElementById('filterForm').action = `/api/v1/filters/${filterId}/share`;
+    document.getElementById('saveFilterModal').classList.remove('hidden');
+}
+
+function editFilter(filterId) {
+    fetch(`/api/v1/filters/${filterId}`)
+        .then(response => response.json())
+        .then(filter => {
+            document.getElementById('filterName').value = filter.name;
+            document.getElementById('filterDescription').value = filter.description;
+            document.getElementById('shareWithGroup').value = filter.group_id || '';
+            document.getElementById('filterForm').action = `/api/v1/filters/${filterId}`;
+            document.getElementById('saveFilterModal').classList.remove('hidden');
+        });
+}
+
+function deleteFilter(filterId) {
+    if (confirm('Are you sure you want to delete this filter?')) {
+        fetch(`/api/v1/filters/${filterId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete filter');
+            }
+        });
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+</script>
+{% endblock %}

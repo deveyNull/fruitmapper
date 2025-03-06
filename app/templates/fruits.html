@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Fruits - Fruit Recipe Platform{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-semibold text-gray-900">Fruits</h1>
+            {% if request.user.is_admin %}
+            <div class="flex items-center space-x-4">
+                <a href="/fruits/upload" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Upload Fruits
+                </a>
+                <a href="/fruits/new"
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                    Add Fruit
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="mt-4 bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label for="fruit-type" class="block text-sm font-medium text-gray-700">Fruit Type</label>
+                        <select id="fruit-type" name="fruit_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All Types</option>
+                            {% for type in fruit_types %}
+                            <option value="{{ type.id }}" {% if selected_type == type.id %}selected{% endif %}>
+                                {{ type.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
+                        <select id="country" name="country" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All Countries</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}" {% if selected_country == country %}selected{% endif %}>
+                                {{ country }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                        <input type="text" name="search" id="search" 
+                               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                               placeholder="Search fruits..."
+                               value="{{ search if search else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fruits Table -->
+        <div class="mt-8 flex flex-col">
+            <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                    <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Name
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Country
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date Picked
+                                    </th>
+                                    <th scope="col" class="relative px-6 py-3">
+                                        <span class="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for fruit in fruits.items %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ fruit.name }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                            {{ fruit.fruit_type.name }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ fruit.country_of_origin }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ fruit.date_picked.strftime('%Y-%m-%d') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="/fruits/{{ fruit.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">View</a>
+                                        {% if request.user.is_admin %}
+                                        <a href="/fruits/{{ fruit.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if fruits.total > fruits.size %}
+<div class="mt-4 flex items-center justify-between">
+    <div class="flex-1 flex justify-between">
+        {% if fruits.page > 1 %}
+        <a href="?page={{ fruits.page - 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Previous
+        </a>
+        {% endif %}
+        <span class="text-sm text-gray-700">
+            Page {{ fruits.page }} of {{ fruits.pages }}
+        </span>
+        {% if fruits.page < fruits.pages %}
+        <a href="?page={{ fruits.page + 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Next
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fruitTypeSelect = document.getElementById('fruit-type');
+        const countrySelect = document.getElementById('country');
+        const searchInput = document.getElementById('search');
+        let timeout = null;
+    
+        function updateFilters() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (fruitTypeSelect.value) {
+                params.set('fruit_type_id', fruitTypeSelect.value);
+            } else {
+                params.delete('fruit_type_id');
+            }
+            
+            if (countrySelect.value) {
+                params.set('country', countrySelect.value);
+            } else {
+                params.delete('country');
+            }
+            
+            if (searchInput.value) {
+                params.set('search', searchInput.value);
+            } else {
+                params.delete('search');
+            }
+            
+            // Reset to page 1 when filters change
+            params.set('page', '1');
+            
+            window.location.search = params.toString();
+        }
+    
+        fruitTypeSelect.addEventListener('change', updateFilters);
+        countrySelect.addEventListener('change', updateFilters);
+        
+        // Debounce search input
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(updateFilters, 500);
+        });
+    });
+    </script>
+{% endblock %}
