@@ -1,6 +1,12 @@
 name,description,contact_info,ip_addresses,domains
 unknown,unknown,unknown@unk.org,,
-Acme Corp,Major technology provider,contact@acme.com,140.3.2.1|140.3.2.2|2.2.2.2,acme.org|acme.com|web.acme.com|secure.acme.com
-TechGiant Inc,Global tech company,support@techgiant.com,192.168.1.1|192.168.1.2,techgiant.com|techgiant.net
-SecureNet,Network security provider,security@securenet.com,10.0.0.1|10.0.0.2,securenet.com
+ShmAcme Corp,Major technology provider,contact@acme.com,140.3.2.1|140.3.2.2|2.2.2.2,acme.org|acme.com|web.acme.com|secure.acme.com
+TechMini Inc,Global tech company,support@techmini.com,192.168.1.1|192.168.1.2,techmini.com|techmini.net
 DataCorp,Data center operator,ops@datacorp.com,172.16.1.1|172.16.1.2,datacorp.com|data-corp.net
+Acme Corporation,Global technology provider,contact@acme-corp.com,192.168.1.0/24|10.10.0.1|10.10.0.2,acme-corp.com|api.acme-corp.com
+TechGiant Inc,Cloud services company,support@techgiant.net,172.16.0.0/16|192.168.2.50,techgiant.net|cloud.techgiant.net
+SecureNet,Security solutions provider,info@securenet.io,10.20.0.0/24|192.168.3.100,securenet.io|protect.securenet.io
+DataFlow Systems,Data analytics company,admin@dataflow-systems.com,192.168.4.0/24|10.30.5.1,dataflow-systems.com|analytics.dataflow-systems.com
+CloudScale,Cloud infrastructure provider,support@cloudscale.tech,172.17.0.0/16|192.168.5.10,cloudscale.tech|portal.cloudscale.tech
+DevHub,Developer tools and services,help@devhub.dev,10.40.0.0/24|192.168.6.25,devhub.dev|tools.devhub.dev
+ComputeEdge,Edge computing solutions,info@compute-edge.net,192.168.7.0/24|10.50.1.1,compute-edge.net|edge.compute-edge.net

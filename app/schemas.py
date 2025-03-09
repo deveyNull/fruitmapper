@@ -82,17 +82,31 @@ class OwnerUpdate(BaseModel):
     description: Optional[str] = None
     contact_info: Optional[str] = None
 
-class OwnerIPResponse(BaseModel):
-    id: int
+class OwnerIPBase(BaseModel):
     ip: str
+
+class OwnerIPCreate(OwnerIPBase):
+    pass
+
+class OwnerIPResponse(OwnerIPBase):
+    id: int
+    owner_id: int
+    is_cidr: bool
     added_at: datetime
 
     class Config:
         from_attributes = True
 
-class OwnerDomainResponse(BaseModel):
-    id: int
+class OwnerDomainBase(BaseModel):
     domain: str
+    include_subdomains: bool = True
+
+class OwnerDomainCreate(OwnerDomainBase):
+    pass
+
+class OwnerDomainResponse(OwnerDomainBase):
+    id: int
+    owner_id: int
     added_at: datetime
 
     class Config:
@@ -118,9 +132,17 @@ class OwnerResponse(OwnerBase):
     class Config:
         from_attributes = True
 
-# Service Models
 
+class ReassignmentResponse(BaseModel):
+    total_services: int
+    ip_matches: int
+    cidr_matches: int
+    domain_matches: int
+    subdomain_matches: int
+    message: str
 
+class OwnerDomainUpdate(BaseModel):
+    include_subdomains: Optional[bool] = None
 
 class ServiceBase(BaseModel):
     ip: str

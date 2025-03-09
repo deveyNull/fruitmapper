@@ -1,14 +1,18 @@
-ip,port,asn,country,domain,banner_data,fruit_id,owner_id
-192.168.1.100,80,AS15169,United States,web.acme.com,"Apache/2.4.41 (Ubuntu)",unknown,unknown
-192.168.1.101,443,AS15169,United States,secure.acme.com,"nginx/1.18.0",unknown,
-192.168.1.102,22,AS16509,Canada,ssh.techgiant.com,"OpenSSH 8.2p1",unknown,
-192.168.1.103,8080,AS16509,Canada,app.techgiant.com,"Tomcat 9.0.45",unknown,unknown
-192.168.1.104,3389,AS14618,United Kingdom,rdp.securenet.com,"Microsoft Terminal Services",unknown,unknown
-192.168.1.105,21,AS14618,United Kingdom,ftp.securenet.com,"vsftpd 3.0.3",unknown,
-192.168.1.106,25,AS13335,Germany,mail.datacorp.com,"Postfix",unknown,unknown
-192.168.1.107,5432,AS13335,Germany,db.datacorp.com,"PostgreSQL 13.4",unknown,
-140.3.2.1,80,AS15169,US,acme.com,Apache/2.4.41,unknown,
-192.168.1.1,443,AS14618,US,techgiant.com,nginx/1.18.0,unknown,
-10.0.0.1,8080,AS16509,US,unknown.com,Apache/2.4.38,unknown,
-172.16.1.2,8443,AS2906,JP,datacorp.com,nginx/1.20.0,unknown,
-192.168.100.1,80,AS1234,UK,unknown.com,Apache/2.4.41,unknown,
+ip,port,asn,country,domain,banner_data,http_data,fruit_id,owner_id
+192.168.1.10,80,AS15169,US,www.acme-corp.com,"HTTP/1.1 200 OK\r\nServer: nginx/1.20.1\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>Acme Corporation</title></head><body><div class='content'>Welcome to Acme</div></body></html>""}",nginx,
+192.168.1.11,443,AS15169,US,secure.acme-corp.com,"HTTP/1.1 200 OK\r\nServer: nginx/1.20.1\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>Secure Portal</title></head><body><div class='login'>Login</div></body></html>""}",nginx,
+192.168.1.20,3306,AS15169,US,db.acme-corp.com,"5.7.38-0ubuntu0.18.04.1\x00MySQL server",,,
+192.168.2.10,80,AS16509,US,www.techgiant.net,"HTTP/1.1 200 OK\r\nServer: Apache/2.4.51\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>TechGiant</title></head><body><div class='wp-content'>Latest news</div></body></html>""}",apache,
+192.168.2.50,8080,AS16509,US,api.techgiant.net,"HTTP/1.1 200 OK\r\nServer: nginx/1.18.0 (Ubuntu)\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<html><body><h1>API Gateway</h1></body></html>""}",nginx,
+10.20.0.5,443,AS14618,DE,portal.securenet.io,"HTTP/1.1 200 OK\r\nServer: Fortinet\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>Security Portal</title></head><body><div class='login'>Secure Login</div></body></html>""}",fortinet,
+10.20.0.10,8443,AS14618,DE,vpn.securenet.io,"HTTP/1.1 200 OK\r\nServer: pfSense\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>VPN Access</title></head><body><div class='login'>VPN Login</div></body></html>""}",pfsense,
+192.168.3.100,25,AS2906,UK,mail.securenet.io,"220 mail.securenet.io ESMTP Postfix",,,
+192.168.4.10,80,AS2906,UK,www.dataflow-systems.com,"HTTP/1.1 200 OK\r\nServer: Apache/2.4.41\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>DataFlow Systems</title></head><body><div class='content'>Data analytics platform</div></body></html>""}",apache,
+192.168.4.20,5432,AS2906,UK,db.dataflow-systems.com,"PostgreSQL 13.4 on x86_64-pc-linux-gnu",,,
+172.17.0.10,80,AS13335,SG,www.cloudscale.tech,"HTTP/1.1 200 OK\r\nServer: nginx/1.20.0\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>CloudScale</title></head><body><div class='content'>Cloud infrastructure solutions</div></body></html>""}",nginx,
+172.17.0.20,27017,AS13335,SG,db.cloudscale.tech,"MongoDB server version: 5.0.5",,,
+10.40.0.5,80,AS16276,AU,www.devhub.dev,"HTTP/1.1 200 OK\r\nServer: nginx/1.18.0\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>DevHub</title></head><body><div id='jenkins-home'>Jenkins Dashboard</div></body></html>""}",nginx,
+10.40.0.10,8080,AS16276,AU,ci.devhub.dev,"HTTP/1.1 200 OK\r\nServer: Jetty\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>Jenkins</title></head><body><div id='jenkins'>Jenkins CI</div></body></html>""}",jenkins,
+10.40.0.15,80,AS16276,AU,git.devhub.dev,"HTTP/1.1 200 OK\r\nServer: nginx/1.18.0\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>GitLab</title></head><body><div class='gitlab'>GitLab</div></body></html>""}",gitlab,
+192.168.7.5,80,AS4134,CN,www.compute-edge.net,"HTTP/1.1 200 OK\r\nServer: lighttpd/1.4.55\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>ComputeEdge</title></head><body><div class='content'>Edge computing solutions</div></body></html>""}",lighttpd,
+192.168.7.10,8080,AS4134,CN,admin.compute-edge.net,"HTTP/1.1 200 OK\r\nServer: lighttpd/1.4.55\r\nDate: Wed, 01 Mar 2023 12:00:00 GMT","{""html"":""<!DOCTYPE html><html><head><title>Router Configuration</title></head><body><div class='admin'>Router Admin</div></body></html>""}",router,

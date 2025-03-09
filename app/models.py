@@ -7,8 +7,9 @@ from sqlalchemy.orm import validates
 from sqlalchemy import event, inspect, UniqueConstraint, Index
 from sqlalchemy import and_, or_
 
-
-
+import ipaddress
+import json
+import re
 
 Base = declarative_base()
 
@@ -74,13 +75,13 @@ class Owner(Base):
         Index('idx_owner_name', 'name'),
     )
 
-# New models to track owner IPs and domains
 class OwnerIP(Base):
     __tablename__ = 'owner_ips'
     
     id = Column(Integer, primary_key=True)
     owner_id = Column(Integer, ForeignKey('owners.id'), nullable=False)
-    ip = Column(String(45), nullable=False)  # Support both IPv4 and IPv6
+    ip = Column(String(45), nullable=False)  # Can store IP or CIDR notation
+    is_cidr = Column(Boolean, default=False)  # Flag for CIDR ranges
     added_at = Column(DateTime, default=datetime.utcnow)
     
     owner = relationship('Owner', back_populates='owned_ips')
@@ -89,13 +90,30 @@ class OwnerIP(Base):
         UniqueConstraint('ip', name='uix_owner_ip'),
         Index('idx_owner_ip', 'ip'),
     )
+    
+    @validates('ip')
+    def validate_ip(self, key, value):
+        """Validate IP address or CIDR notation"""
+        try:
+            # Check if it's a CIDR notation
+            if '/' in value:
+                ipaddress.ip_network(value, strict=False)
+                self.is_cidr = True
+            else:
+                ipaddress.ip_address(value)
+                self.is_cidr = False
+            return value
+        except ValueError:
+            raise ValueError("Invalid IP address or CIDR notation")
 
+# Modify OwnerDomain class
 class OwnerDomain(Base):
     __tablename__ = 'owner_domains'
     
     id = Column(Integer, primary_key=True)
     owner_id = Column(Integer, ForeignKey('owners.id'), nullable=False)
     domain = Column(String(255), nullable=False)
+    include_subdomains = Column(Boolean, default=True)  # Whether to match subdomains
     added_at = Column(DateTime, default=datetime.utcnow)
     
     owner = relationship('Owner', back_populates='owned_domains')
@@ -140,23 +158,52 @@ class Service(Base):
         super().__init__(*args, **kwargs)
         if 'fruit' in kwargs and kwargs['fruit'] is not None:
             self.fruit_type_id = kwargs['fruit'].fruit_type_id
+        if 'http_data' in kwargs and isinstance(kwargs['http_data'], dict):
+            kwargs['http_data'] = json.dumps(kwargs['http_data'])
+            
+        # Call parent constructor
+        super(Service, self).__init__(**kwargs)
 
     #TODO this is where I should do Ownership by /24s and by domain+subdomain things. Obviously
     @validates('ip', 'domain')
     def validate_ownership_fields(self, key, value):
-        """Auto-update owner based on IP or domain match"""
         if value:
             session = inspect(self).session
             if session:
                 if key == 'ip':
-                    owner_ip = session.query(OwnerIP).filter_by(ip=value).first()
+                    # Try exact IP match first
+                    owner_ip = session.query(OwnerIP).filter_by(ip=value, is_cidr=False).first()
                     if owner_ip:
                         self.owner_id = owner_ip.owner_id
-                elif key == 'domain':
+                    else:
+                        # Try CIDR matches
+                        try:
+                            ip_obj = ipaddress.ip_address(value)
+                            cidr_ranges = session.query(OwnerIP).filter_by(is_cidr=True).all()
+                            for cidr in cidr_ranges:
+                                try:
+                                    network = ipaddress.ip_network(cidr.ip, strict=False)
+                                    if ip_obj in network:
+                                        self.owner_id = cidr.owner_id
+                                        break
+                                except ValueError:
+                                    continue
+                        except ValueError:
+                            pass  # Invalid IP, ignore
+                            
+                elif key == 'domain' and value:
+                    # Exact domain match
                     owner_domain = session.query(OwnerDomain).filter_by(domain=value).first()
                     if owner_domain:
                         self.owner_id = owner_domain.owner_id
-        return value
+                    else:
+                        # Try subdomain matching
+                        domains = session.query(OwnerDomain).filter_by(include_subdomains=True).all()
+                        for domain in domains:
+                            if domain.domain and value.endswith('.' + domain.domain):
+                                self.owner_id = domain.owner_id
+                                break
+            return value
 
 
 
@@ -257,25 +304,84 @@ def update_owner_from_ip_domain(mapper, connection, target):
                 if owner_domain:
                     target.owner_id = owner_domain.owner_id
 
-# Event listeners for OwnerIP model
 @event.listens_for(OwnerIP, 'after_insert')
 def update_services_for_new_ip(mapper, connection, target):
-    """Update existing services that match the new IP"""
+    """Update existing services that match the new IP or CIDR range"""
     session = inspect(target).session
-    if session:
-        services = session.query(Service).filter_by(ip=target.ip, owner_id=None).all()
-        for service in services:
-            service.owner_id = target.owner_id
+    if not session:
+        return
+        
+    # Instead of directly modifying objects, use SQL UPDATE statements
+    # This avoids issues with the SQLAlchemy unit of work system
+    if target.is_cidr:
+        try:
+            # For CIDR, we need a custom approach
+            # First, get all services without owners
+            services = session.query(Service).filter(Service.owner_id.is_(None)).all()
+            
+            # Build a list of service IDs that match the CIDR range
+            matching_ids = []
+            network = ipaddress.ip_network(target.ip, strict=False)
+            
+            for service in services:
+                try:
+                    if service.ip and ipaddress.ip_address(service.ip) in network:
+                        matching_ids.append(service.id)
+                except ValueError:
+                    continue
+                    
+            # Now update all matching services with a single query
+            if matching_ids:
+                session.query(Service).filter(Service.id.in_(matching_ids)).update(
+                    {"owner_id": target.owner_id},
+                    synchronize_session=False
+                )
+        except ValueError:
+            pass  # Invalid CIDR, ignore
+    else:
+        # For exact IP match, use a direct UPDATE
+        session.query(Service).filter(
+            Service.ip == target.ip,
+            Service.owner_id.is_(None)
+        ).update(
+            {"owner_id": target.owner_id},
+            synchronize_session=False
+        )
 
-# Event listeners for OwnerDomain model
+# Fix for OwnerDomain after_insert event handler
 @event.listens_for(OwnerDomain, 'after_insert')
 def update_services_for_new_domain(mapper, connection, target):
-    """Update existing services that match the new domain"""
+    """Update existing services that match the new domain or subdomains"""
     session = inspect(target).session
-    if session:
-        services = session.query(Service).filter_by(domain=target.domain, owner_id=None).all()
-        for service in services:
-            service.owner_id = target.owner_id
+    if not session:
+        return
+        
+    # Use direct SQL UPDATE statements
+    if target.include_subdomains:
+        # Match domain and any subdomain that ends with .domain
+        session.query(Service).filter(
+            and_(
+                Service.domain.isnot(None),
+                Service.owner_id.is_(None),
+                or_(
+                    Service.domain == target.domain,
+                    Service.domain.like(f"%.{target.domain}")
+                )
+            )
+        ).update(
+            {"owner_id": target.owner_id},
+            synchronize_session=False
+        )
+    else:
+        # Match exact domain only
+        session.query(Service).filter(
+            Service.domain == target.domain,
+            Service.owner_id.is_(None)
+        ).update(
+            {"owner_id": target.owner_id},
+            synchronize_session=False
+        )
+
 
 @event.listens_for(Fruit, 'after_insert')
 def match_services_on_create(mapper, connection, target):
@@ -412,3 +518,96 @@ def check_service_matches(mapper, connection, target):
         except re.error:
             print(f"Invalid regex pattern for fruit {fruit.name}: {fruit.match_regex}")
             continue
+
+
+@event.listens_for(Service, 'before_insert')
+@event.listens_for(Service, 'before_update')
+def match_service_to_fruit(mapper, connection, target):
+    """
+    Match a service to a fruit based on banner_data, html content, or http headers.
+    This function identifies the service type based on its fingerprints.
+    """
+    # Get the session from the instance state
+    session = inspect(target).session
+    if not session:
+        return
+    
+    # Get all fruits - use the actual session object
+    fruits = session.query(Fruit).all()
+    
+    # Try to match banner data first
+    if target.banner_data:
+        for fruit in fruits:
+            if fruit.match_type == 'banner' and fruit.match_regex:
+                try:
+                    if re.search(fruit.match_regex, target.banner_data):
+                        target.fruit_id = fruit.id
+                        target.fruit_type_id = fruit.fruit_type_id
+                        return
+                except Exception:
+                    continue
+    
+    # Try to match HTML content if available
+    html_content = None
+    if target.http_data:
+        try:
+            # Handle both string and dict http_data
+            if isinstance(target.http_data, str):
+                data = json.loads(target.http_data)
+            else:
+                data = target.http_data
+                
+            html_content = data.get('html')
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
+    
+    if html_content:
+        for fruit in fruits:
+            if fruit.match_type == 'html' and fruit.match_regex:
+                try:
+                    if re.search(fruit.match_regex, html_content):
+                        target.fruit_id = fruit.id
+                        target.fruit_type_id = fruit.fruit_type_id
+                        return
+                except Exception:
+                    continue
+    
+    # Try to match HTTP headers if available
+    headers = None
+    if target.http_data:
+        try:
+            # Handle both string and dict http_data
+            if isinstance(target.http_data, str):
+                data = json.loads(target.http_data)
+            else:
+                data = target.http_data
+                
+            headers = data.get('headers')
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
+    
+    if headers:
+        # Convert headers to string for matching
+        header_str = ""
+        if isinstance(headers, dict):
+            for key, value in headers.items():
+                header_str += f"{key}: {value}\r\n"
+        elif isinstance(headers, str):
+            header_str = headers
+        
+        for fruit in fruits:
+            if fruit.match_type == 'http_header' and fruit.match_regex:
+                try:
+                    if re.search(fruit.match_regex, header_str):
+                        target.fruit_id = fruit.id
+                        target.fruit_type_id = fruit.fruit_type_id
+                        return
+                except Exception:
+                    continue
+    
+    # If we reached here and no fruit assigned, try to find the "unknown" fruit
+    if target.fruit_id is None:
+        unknown = session.query(Fruit).filter_by(name="unknown").first()
+        if unknown:
+            target.fruit_id = unknown.id
+            target.fruit_type_id = unknown.fruit_type_id

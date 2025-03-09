@@ -8,7 +8,7 @@ from typing import List, Optional
 from app.database import get_db
 import app.crud as crud
 import app.schemas as schemas
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_admin_user
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -90,6 +90,47 @@ async def view_owner(
         }
     )
 
+@router.patch("/{owner_id}/domains/{domain_id}", response_model=schemas.OwnerDomainResponse)
+async def update_domain_settings(
+    owner_id: int,
+    domain_id: int,
+    update_data: schemas.OwnerDomainUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Update domain settings like subdomain inclusion."""
+    # Check if domain exists and belongs to this owner
+    domain = db.query(OwnerDomain).filter_by(id=domain_id, owner_id=owner_id).first()
+    if not domain:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Domain not found or not owned by this owner"
+        )
+    
+    # Update include_subdomains setting
+    if update_data.include_subdomains is not None:
+        domain.include_subdomains = update_data.include_subdomains
+    
+    db.commit()
+    db.refresh(domain)
+    
+    # If we're enabling subdomain matching, refresh service ownership
+    if update_data.include_subdomains:
+        # Find services with matching subdomains and assign ownership
+        services = db.query(Service).filter(
+            and_(
+                Service.domain.isnot(None),
+                Service.owner_id.is_(None),
+                Service.domain.like(f"%.{domain.domain}")
+            )
+        ).all()
+        
+        for service in services:
+            service.owner_id = owner_id
+        
+        db.commit()
+    
+    return domain
 @router.put("/{owner_id}", response_model=schemas.OwnerResponse)
 async def update_owner(
     owner_id: int,
@@ -148,3 +189,59 @@ async def list_owner_services(
         )
     
     return crud.get_services_by_owner(db, owner_id, skip=skip, limit=limit)
+
+@router.post("/{owner_id}/ips", response_model=schemas.OwnerIPResponse)
+async def add_ip_to_owner(
+    owner_id: int,
+    ip_data: schemas.OwnerIPCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Add an IP address or CIDR range to an owner."""
+    return crud.add_owner_ip(db, owner_id, ip_data.ip)
+
+@router.delete("/{owner_id}/ips/{ip_id}")
+async def remove_ip_from_owner(
+    owner_id: int,
+    ip_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Remove an IP address from an owner."""
+    crud.remove_owner_ip(db, owner_id, ip_id)
+    return {"message": "IP address removed successfully"}
+
+@router.post("/{owner_id}/domains", response_model=schemas.OwnerDomainResponse)
+async def add_domain_to_owner(
+    owner_id: int,
+    domain_data: schemas.OwnerDomainCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Add a domain to an owner."""
+    return crud.add_owner_domain(db, owner_id, domain_data.domain, domain_data.include_subdomains)
+
+@router.delete("/{owner_id}/domains/{domain_id}")
+async def remove_domain_from_owner(
+    owner_id: int,
+    domain_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Remove a domain from an owner."""
+    crud.remove_owner_domain(db, owner_id, domain_id)
+    return {"message": "Domain removed successfully"}
+
+@router.post("/reassign-services", response_model=schemas.ReassignmentResponse)
+async def reassign_all_services(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)  # Admin only
+):
+    """
+    Reassign all services to their proper owners based on current IP and domain rules.
+    This is useful after adding new ownership rules or when migrating data.
+    Admin only operation.
+    """
+    results = crud.reassign_service_owners(db)
+    results["message"] = f"Successfully reassigned {results['ip_matches'] + results['cidr_matches'] + results['domain_matches'] + results['subdomain_matches']} services"
+    return results

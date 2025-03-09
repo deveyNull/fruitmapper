@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from io import StringIO
 import json
 
-from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner
+from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner, OwnerIP, OwnerDomain
 from passlib.hash import bcrypt
 from app import schemas
 from .schemas import ServiceList, ServiceResponse, OwnerList, OwnerResponse
@@ -833,3 +833,188 @@ def get_unique_countries(db: Session) -> List[str]:
     """Get list of unique countries from services table."""
     countries = db.query(Service.country).distinct().order_by(Service.country).all()
     return [country[0] for country in countries if country[0]]
+
+# Owner IP operations
+def add_owner_ip(db: Session, owner_id: int, ip: str) -> OwnerIP:
+    """Add an IP address or CIDR range to an owner"""
+    # Validate owner exists
+    owner = get_owner(db, owner_id)
+    if not owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Owner not found"
+        )
+        
+    # Check if this IP/CIDR is already owned by someone else
+    existing = db.query(OwnerIP).filter_by(ip=ip).first()
+    if existing and existing.owner_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"This IP or range is already owned by another organization"
+        )
+    
+    # Create new record if it doesn't exist for this owner
+    if not existing:
+        try:
+            owner_ip = OwnerIP(
+                owner_id=owner_id,
+                ip=ip
+            )
+            db.add(owner_ip)
+            db.commit()
+            db.refresh(owner_ip)
+            return owner_ip
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    
+    return existing
+
+def remove_owner_ip(db: Session, owner_id: int, ip_id: int) -> bool:
+    """Remove an IP address from an owner"""
+    owner_ip = db.query(OwnerIP).filter_by(id=ip_id, owner_id=owner_id).first()
+    if not owner_ip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="IP not found or not owned by this owner"
+        )
+    
+    db.delete(owner_ip)
+    db.commit()
+    return True
+
+def add_owner_domain(db: Session, owner_id: int, domain: str, include_subdomains: bool = True) -> OwnerDomain:
+    """Add a domain to an owner"""
+    # Validate owner exists
+    owner = get_owner(db, owner_id)
+    if not owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Owner not found"
+        )
+    
+    # Clean domain (remove http://, www. prefixes)
+    domain = domain.lower().strip()
+    if domain.startswith('http://'):
+        domain = domain[7:]
+    if domain.startswith('https://'):
+        domain = domain[8:]
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    # Check if this domain is already owned by someone else
+    existing = db.query(OwnerDomain).filter_by(domain=domain).first()
+    if existing and existing.owner_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"This domain is already owned by another organization"
+        )
+    
+    # Create new record if it doesn't exist for this owner
+    if not existing:
+        owner_domain = OwnerDomain(
+            owner_id=owner_id,
+            domain=domain,
+            include_subdomains=include_subdomains
+        )
+        db.add(owner_domain)
+        db.commit()
+        db.refresh(owner_domain)
+        return owner_domain
+    
+    # Update include_subdomains flag if it changed
+    if existing.include_subdomains != include_subdomains:
+        existing.include_subdomains = include_subdomains
+        db.commit()
+        db.refresh(existing)
+        
+    return existing
+
+def remove_owner_domain(db: Session, owner_id: int, domain_id: int) -> bool:
+    """Remove a domain from an owner"""
+    owner_domain = db.query(OwnerDomain).filter_by(id=domain_id, owner_id=owner_id).first()
+    if not owner_domain:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Domain not found or not owned by this owner"
+        )
+    
+    db.delete(owner_domain)
+    db.commit()
+    return True
+
+# Function to manually reassign all services to proper owners
+def reassign_service_owners(db: Session) -> dict:
+    """
+    Reassign all services to their proper owners based on current IP and domain rules.
+    Used after adding new ownership rules or when migrating existing data.
+    
+    Returns a dictionary with counts of updated services.
+    """
+    results = {
+        "total_services": 0,
+        "ip_matches": 0,
+        "cidr_matches": 0,
+        "domain_matches": 0,
+        "subdomain_matches": 0
+    }
+    
+    # Get all services
+    services = db.query(Service).all()
+    results["total_services"] = len(services)
+    
+    # Get all ownership rules
+    ip_rules = db.query(OwnerIP).all()
+    cidr_rules = [r for r in ip_rules if r.is_cidr]
+    exact_ip_rules = [r for r in ip_rules if not r.is_cidr]
+    
+    domain_rules = db.query(OwnerDomain).all()
+    
+    # Process each service
+    for service in services:
+        old_owner_id = service.owner_id
+        
+        # Try exact IP match first
+        if service.ip:
+            for rule in exact_ip_rules:
+                if service.ip == rule.ip:
+                    service.owner_id = rule.owner_id
+                    results["ip_matches"] += 1
+                    break
+        
+        # Try CIDR match if no exact match
+        if service.ip and service.owner_id == old_owner_id:
+            try:
+                ip_obj = ipaddress.ip_address(service.ip)
+                for rule in cidr_rules:
+                    try:
+                        network = ipaddress.ip_network(rule.ip, strict=False)
+                        if ip_obj in network:
+                            service.owner_id = rule.owner_id
+                            results["cidr_matches"] += 1
+                            break
+                    except ValueError:
+                        continue
+            except ValueError:
+                pass
+        
+        # Try exact domain match
+        if service.domain and service.owner_id == old_owner_id:
+            for rule in domain_rules:
+                if service.domain == rule.domain:
+                    service.owner_id = rule.owner_id
+                    results["domain_matches"] += 1
+                    break
+        
+        # Try subdomain match if enabled
+        if service.domain and service.owner_id == old_owner_id:
+            for rule in domain_rules:
+                if rule.include_subdomains and rule.domain and service.domain.endswith('.' + rule.domain):
+                    service.owner_id = rule.owner_id
+                    results["subdomain_matches"] += 1
+                    break
+    
+    db.commit()
+    return results

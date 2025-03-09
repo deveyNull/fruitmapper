@@ -66,21 +66,39 @@
                                 <div class="mt-5 border-t border-gray-200">
                                     <!-- IP Addresses -->
                                     <div class="py-4">
-                                        <h3 class="text-md font-medium text-gray-700">IP Addresses</h3>
+                                        <h3 class="text-md font-medium text-gray-700">IP Addresses & Ranges</h3>
                                         {% if owner.owned_ips %}
                                         <div class="mt-2">
                                             <table class="min-w-full divide-y divide-gray-200">
                                                 <thead class="bg-gray-50">
                                                     <tr>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address/Range</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added Date</th>
+                                                        {% if request.user.is_admin %}
+                                                        <th scope="col" class="relative px-6 py-3">
+                                                            <span class="sr-only">Actions</span>
+                                                        </th>
+                                                        {% endif %}
                                                     </tr>
                                                 </thead>
                                                 <tbody class="bg-white divide-y divide-gray-200">
                                                     {% for ip in owner.owned_ips %}
                                                     <tr>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ ip.ip }}</td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {% if ip.is_cidr %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">CIDR Range</span>
+                                                            {% else %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Single IP</span>
+                                                            {% endif %}
+                                                        </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ip.added_at.strftime('%Y-%m-%d') }}</td>
+                                                        <!-- {% if request.user.is_admin %}
+                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button onclick="deleteOwnerIP({{ ip.id }})" class="text-red-600 hover:text-red-900">Delete</button>
+                                                        </td>
+                                                        {% endif %} -->
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>
@@ -100,14 +118,35 @@
                                                 <thead class="bg-gray-50">
                                                     <tr>
                                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Includes Subdomains</th>
                                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added Date</th>
+                                                        {% if request.user.is_admin %}
+                                                        <th scope="col" class="relative px-6 py-3">
+                                                            <span class="sr-only">Actions</span>
+                                                        </th>
+                                                        {% endif %}
                                                     </tr>
                                                 </thead>
                                                 <tbody class="bg-white divide-y divide-gray-200">
                                                     {% for domain in owner.owned_domains %}
                                                     <tr>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ domain.domain }}</td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {% if domain.include_subdomains %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Yes</span>
+                                                            {% else %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">No</span>
+                                                            {% endif %}
+                                                        </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ domain.added_at.strftime('%Y-%m-%d') }}</td>
+                                                        <!-- {% if request.user.is_admin %}
+                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button onclick="toggleSubdomains({{ domain.id }}, {{ 'false' if domain.include_subdomains else 'true' }})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                                {{ 'Exclude Subdomains' if domain.include_subdomains else 'Include Subdomains' }}
+                                                            </button>
+                                                            <button onclick="deleteOwnerDomain({{ domain.id }})" class="text-red-600 hover:text-red-900">Delete</button>
+                                                        </td>
+                                                        {% endif %} -->
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>
@@ -122,7 +161,7 @@
                                     <div class="mt-4 flex space-x-3">
                                         <button onclick="openAddIPModal()" 
                                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                                            Add IP Address
+                                            Add IP Address/Range
                                         </button>
                                         <button onclick="openAddDomainModal()" 
                                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
@@ -206,6 +245,10 @@
                             <div class="px-4 py-5 sm:p-6">
                                 <h2 id="admin-actions" class="text-lg leading-6 font-medium text-gray-900">Admin Actions</h2>
                                 <div class="mt-4 space-y-3">
+                                    <button onclick="reassignServices()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                        Reassign All Services
+                                    </button>
                                     <button onclick="confirmDelete()"
                                             class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
                                         Delete Owner
@@ -258,58 +301,94 @@
             </div>
         </form>
     </div>
-    <div id="addIPModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <form id="addIPForm" method="POST" action="/owners/{{ owner.id }}/ips">
-                <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add IP Address</h3>
-                    <div class="mt-4">
-                        <label for="ip" class="block text-sm font-medium text-gray-700">IP Address</label>
-                        <input type="text" name="ip" id="ip" required
-                               pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
-                               placeholder="xxx.xxx.xxx.xxx"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    </div>
+</div>
+
+<!-- Add IP Modal -->
+<div id="addIPModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <form id="addIPForm" method="POST" action="/owners/{{ owner.id }}/ips">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Add IP Address or Range</h3>
+                <div class="mt-4">
+                    <label for="ip" class="block text-sm font-medium text-gray-700">IP Address or CIDR Range</label>
+                    <input type="text" name="ip" id="ip" required
+                           placeholder="192.168.1.1 or 192.168.1.0/24"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <p class="mt-2 text-sm text-gray-500">
+                        Enter a single IP (e.g., 192.168.1.1) or a CIDR range (e.g., 192.168.1.0/24)
+                    </p>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
-                    <button type="button" onclick="closeAddIPModal()"
-                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        Add IP
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                <button type="button" onclick="closeAddIPModal()"
+                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Add IP
+                </button>
+            </div>
+        </form>
     </div>
-    
-    <!-- Add Domain Modal -->
-    <div id="addDomainModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <form id="addDomainForm" method="POST" action="/owners/{{ owner.id }}/domains">
-                <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Add Domain</h3>
-                    <div class="mt-4">
-                        <label for="domain" class="block text-sm font-medium text-gray-700">Domain Name</label>
-                        <input type="text" name="domain" id="domain" required
-                               pattern="^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$"
-                               placeholder="example.com"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+</div>
+
+<!-- Add Domain Modal -->
+<div id="addDomainModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <form id="addDomainForm" method="POST" action="/owners/{{ owner.id }}/domains">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Add Domain</h3>
+                <div class="mt-4">
+                    <label for="domain" class="block text-sm font-medium text-gray-700">Domain Name</label>
+                    <input type="text" name="domain" id="domain" required
+                           placeholder="example.com"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <p class="mt-2 text-sm text-gray-500">
+                        Enter a domain name without http:// or www. prefix (e.g., example.com)
+                    </p>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="include_subdomains" name="include_subdomains" type="checkbox" checked
+                                   class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="include_subdomains" class="font-medium text-gray-700">Include Subdomains</label>
+                            <p class="text-gray-500">When enabled, all subdomains (e.g., sub.example.com) will also be considered owned by this organization</p>
+                        </div>
                     </div>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
-                    <button type="button" onclick="closeAddDomainModal()"
-                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        Add Domain
-                    </button>
-                </div>
-            </form>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                <button type="button" onclick="closeAddDomainModal()"
+                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Add Domain
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="resultsModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900" id="resultsTitle">Operation Results</h3>
+            <div class="mt-4" id="resultsContent">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+            <button type="button" onclick="closeResultsModal()"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                Close
+            </button>
         </div>
     </div>
 </div>
@@ -342,6 +421,99 @@ function closeAddDomainModal() {
     document.getElementById('addDomainModal').classList.add('hidden');
 }
 
+function openResultsModal(title, content) {
+    document.getElementById('resultsTitle').textContent = title;
+    document.getElementById('resultsContent').innerHTML = content;
+    document.getElementById('resultsModal').classList.remove('hidden');
+}
+
+function closeResultsModal() {
+    document.getElementById('resultsModal').classList.add('hidden');
+}
+
+function deleteOwnerIP(ipId) {
+    if (confirm('Are you sure you want to delete this IP address? Services may be unassigned.')) {
+        fetch(`/owners/{{ owner.id }}/ips/${ipId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete IP address.');
+            }
+        });
+    }
+}
+
+function deleteOwnerDomain(domainId) {
+    if (confirm('Are you sure you want to delete this domain? Services may be unassigned.')) {
+        fetch(`/owners/{{ owner.id }}/domains/${domainId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete domain.');
+            }
+        });
+    }
+}
+
+function toggleSubdomains(domainId, includeSubdomains) {
+    fetch(`/owners/{{ owner.id }}/domains/${domainId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            include_subdomains: includeSubdomains
+        })
+    }).then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to update domain settings.');
+        }
+    });
+}
+
+function reassignServices() {
+    if (confirm('This will reassign all services based on current IP and domain ownership rules. Continue?')) {
+        fetch('/owners/reassign-services', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+        .then(data => {
+            let resultsHTML = `
+                <div class="text-sm text-gray-900">
+                    <p class="font-medium text-green-600">${data.message}</p>
+                    <div class="mt-4 bg-gray-50 p-4 rounded-md">
+                        <ul class="space-y-2">
+                            <li>Total services scanned: ${data.total_services}</li>
+                            <li>Exact IP matches: ${data.ip_matches}</li>
+                            <li>CIDR range matches: ${data.cidr_matches}</li>
+                            <li>Exact domain matches: ${data.domain_matches}</li>
+                            <li>Subdomain matches: ${data.subdomain_matches}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            openResultsModal('Reassignment Results', resultsHTML);
+        })
+        .catch(error => {
+            alert('An error occurred during reassignment.');
+        });
+    }
+}
+
 function confirmDelete() {
     if (confirm('Are you sure you want to delete this owner? This cannot be undone.')) {
         fetch('/owners/{{ owner.id }}', {
@@ -358,5 +530,64 @@ function confirmDelete() {
         });
     }
 }
+
+// Form submission handling with AJAX
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle IP form submission
+    if (document.getElementById('addIPForm')) {
+        document.getElementById('addIPForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const ip = document.getElementById('ip').value;
+            
+            fetch(`/owners/{{ owner.id }}/ips`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip })
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    response.json().then(data => {
+                        alert(`Error: ${data.detail || 'Failed to add IP address'}`);
+                    }).catch(() => {
+                        alert('Failed to add IP address');
+                    });
+                }
+            });
+        });
+    }
+    
+    // Handle domain form submission
+    if (document.getElementById('addDomainForm')) {
+        document.getElementById('addDomainForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const domain = document.getElementById('domain').value;
+            const includeSubdomains = document.getElementById('include_subdomains').checked;
+            
+            fetch(`/owners/{{ owner.id }}/domains`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    domain, 
+                    include_subdomains: includeSubdomains 
+                })
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    response.json().then(data => {
+                        alert(`Error: ${data.detail || 'Failed to add domain'}`);
+                    }).catch(() => {
+                        alert('Failed to add domain');
+                    });
+                }
+            });
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -1,11 +1,24 @@
 name,fruit_type,match_type,match_regex,date_picked
-nginx,nginx,banner,nginx,2024-01-15
-nginx2,nginx,banner,nginx,2024-01-15
-apache,apache,banner,apache,2024-01-01
-Lemon,citrus,banner,lemon,2024-01-20
-Grapefruit,citrus,banner,grapefruit,2024-01-18
-Blueberry,berry,banner,snjnsd,2024-01-25
-Strawberry,berry,banner,sdsdsadsd,2024-01-22
-Raspberry,berry,banner,server,2024-01-21
-Peach,stone fruit,html,sssssss,2024-01-10
+nginx,web-server,banner,nginx,2024-01-15
+apache,web-server,banner,Apache,2024-01-16
+iis,web-server,banner,Microsoft-IIS,2024-01-17
+lighttpd,web-server,banner,lighttpd,2024-01-18
+mysql,database,banner,MySQL server,2024-01-20
+postgresql,database,banner,PostgreSQL,2024-01-21
+mongodb,database,banner,MongoDB,2024-01-22
+redis,database,banner,Redis,2024-01-23
+exchange,mail-server,banner,Microsoft Exchange,2024-01-25
+postfix,mail-server,banner,Postfix,2024-01-26
+exim,mail-server,banner,Exim,2024-01-27
+router,iot-device,html,<title>Router Configuration</title>,2024-01-30
+camera,iot-device,html,<title>IP Camera</title>,2024-01-31
+wordpress,cms,html,wp-content,2024-02-01
+drupal,cms,html,Drupal,2024-02-02
+joomla,cms,html,Joomla,2024-02-03
+fortinet,security,banner,Fortinet,2024-02-05
+pfsense,security,banner,pfSense,2024-02-06
+cloudflare,api-gateway,http_header,cloudflare,2024-02-10
+nginx-proxy,api-gateway,banner,nginx.+proxy,2024-02-11
+jenkins,devops,html,Jenkins,2024-02-15
+gitlab,devops,html,GitLab,2024-02-16
 
