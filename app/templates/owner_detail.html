@@ -16,7 +16,7 @@
 
         <div class="mt-6">
             <!-- Header -->
-            <div class="md:flex md:items-center md:justify-between">
+            <div class="md:flex md:items-center md:justify-between mb-6">
                 <div class="flex-1 min-w-0">
                     <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">{{ owner.name }}</h1>
                     <p class="mt-1 text-sm text-gray-500">Created: {{ owner.created_at.strftime('%Y-%m-%d') }}</p>
@@ -30,35 +30,10 @@
                 {% endif %}
             </div>
 
-            <!-- Content Grid -->
-            <div class="mt-8 max-w-3xl mx-auto grid grid-cols-1 gap-6 sm:px-6 lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3">
-                <!-- Main Content -->
-                <div class="space-y-6 lg:col-span-2">
-                    <!-- Owner Information -->
-                    <section aria-labelledby="owner-info">
-                        <div class="bg-white shadow sm:rounded-lg">
-                            <div class="px-4 py-5 sm:p-6">
-                                <h2 id="owner-info" class="text-lg leading-6 font-medium text-gray-900">Owner Information</h2>
-                                <div class="mt-5 border-t border-gray-200">
-                                    <dl class="divide-y divide-gray-200">
-                                        {% if owner.description %}
-                                        <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                                            <dt class="text-sm font-medium text-gray-500">Description</dt>
-                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ owner.description }}</dd>
-                                        </div>
-                                        {% endif %}
-                                        {% if owner.contact_info %}
-                                        <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                                            <dt class="text-sm font-medium text-gray-500">Contact Information</dt>
-                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ owner.contact_info }}</dd>
-                                        </div>
-                                        {% endif %}
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    <!-- IP Addresses and Domains -->
+            <!-- Top Section: Two-column layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+                <!-- Left Column: Assets (IP Addresses and Domains) -->
+                <div class="lg:col-span-8">
                     <section aria-labelledby="owner-assets">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
@@ -94,11 +69,6 @@
                                                             {% endif %}
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ip.added_at.strftime('%Y-%m-%d') }}</td>
-                                                        <!-- {% if request.user.is_admin %}
-                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <button onclick="deleteOwnerIP({{ ip.id }})" class="text-red-600 hover:text-red-900">Delete</button>
-                                                        </td>
-                                                        {% endif %} -->
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>
@@ -139,14 +109,6 @@
                                                             {% endif %}
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ domain.added_at.strftime('%Y-%m-%d') }}</td>
-                                                        <!-- {% if request.user.is_admin %}
-                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <button onclick="toggleSubdomains({{ domain.id }}, {{ 'false' if domain.include_subdomains else 'true' }})" class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                                                {{ 'Exclude Subdomains' if domain.include_subdomains else 'Include Subdomains' }}
-                                                            </button>
-                                                            <button onclick="deleteOwnerDomain({{ domain.id }})" class="text-red-600 hover:text-red-900">Delete</button>
-                                                        </td>
-                                                        {% endif %} -->
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>
@@ -173,74 +135,75 @@
                             </div>
                         </div>
                     </section>
-                    <!-- Services -->
-                    <section aria-labelledby="services-title">
+                </div>
+
+                <!-- Right Column: Owner info and statistics -->
+                <div class="lg:col-span-4">
+                    <!-- Owner Information -->
+                    <section aria-labelledby="owner-info" class="mb-6">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="services-title" class="text-lg leading-6 font-medium text-gray-900">
-                                    Services
-                                    {% if services %}
-                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        {{ services|length }} total
-                                    </span>
-                                    {% endif %}
-                                </h2>
-                                {% if services %}
-                                <div class="mt-6 flow-root">
-                                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                        <div class="inline-block min-w-full py-2 align-middle">
-                                            <table class="min-w-full divide-y divide-gray-300">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">IP:Port</th>
-                                                        <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Device Type</th>
-                                                        <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Country</th>
-                                                        <th class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                                                            <span class="sr-only">Actions</span>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="divide-y divide-gray-200">
-                                                    {% for service in services %}
-                                                    <tr>
-                                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
-                                                            {{ service.ip }}:{{ service.port }}
-                                                        </td>
-                                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                            {% if service.fruit %}
-                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                                {{ service.fruit.name }}
-                                                            </span>
-                                                            {% else %}
-                                                            -
-                                                            {% endif %}
-                                                        </td>
-                                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                            {{ service.country or '-' }}
-                                                        </td>
-                                                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                                            <a href="/services/{{ service.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
-                                                        </td>
-                                                    </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
+                                <h2 id="owner-info" class="text-lg leading-6 font-medium text-gray-900">Owner Information</h2>
+                                <div class="mt-5 border-t border-gray-200">
+                                    <dl class="divide-y divide-gray-200">
+                                        {% if owner.description %}
+                                        <div class="py-4">
+                                            <dt class="text-sm font-medium text-gray-500">Description</dt>
+                                            <dd class="mt-1 text-sm text-gray-900">{{ owner.description }}</dd>
                                         </div>
-                                    </div>
+                                        {% endif %}
+                                        {% if owner.contact_info %}
+                                        <div class="py-4">
+                                            <dt class="text-sm font-medium text-gray-500">Contact Information</dt>
+                                            <dd class="mt-1 text-sm text-gray-900">{{ owner.contact_info }}</dd>
+                                        </div>
+                                        {% endif %}
+                                    </dl>
                                 </div>
-                                {% else %}
-                                <p class="mt-4 text-sm text-gray-500">No services assigned to this owner.</p>
-                                {% endif %}
                             </div>
                         </div>
                     </section>
-                </div>
 
-                <!-- Sidebar -->
-                <div class="space-y-6 lg:col-span-1">
-                    {% if request.user.is_admin %}
+                    <!-- Statistics Card -->
+                    <section aria-labelledby="stats-card">
+                        <div class="bg-white shadow sm:rounded-lg">
+                            <div class="px-4 py-5 sm:p-6">
+                                <h2 id="stats-card" class="text-lg leading-6 font-medium text-gray-900">Statistics</h2>
+                                <dl class="mt-4 grid grid-cols-1 gap-x-4 gap-y-8">
+                                    <div class="sm:col-span-1">
+                                        <dt class="text-sm font-medium text-gray-500">Total Services</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ services|length }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-1">
+                                        <dt class="text-sm font-medium text-gray-500">IP Addresses</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ owner.owned_ips|length }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-1">
+                                        <dt class="text-sm font-medium text-gray-500">Domains</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ owner.owned_domains|length }}</dd>
+                                    </div>
+                                    {% if services %}
+                                    <div class="sm:col-span-1">
+                                        <dt class="text-sm font-medium text-gray-500">Countries</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">
+                                            {% set countries = [] %}
+                                            {% for service in services %}
+                                                {% if service.country and service.country not in countries %}
+                                                    {% set _ = countries.append(service.country) %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {{ countries|length }}
+                                        </dd>
+                                    </div>
+                                    {% endif %}
+                                </dl>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Admin Actions -->
-                    <section aria-labelledby="admin-actions">
+                    {% if request.user.is_admin %}
+                    <section aria-labelledby="admin-actions" class="mt-6">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
                                 <h2 id="admin-actions" class="text-lg leading-6 font-medium text-gray-900">Admin Actions</h2>
@@ -259,6 +222,91 @@
                     </section>
                     {% endif %}
                 </div>
+            </div>
+
+            <!-- Bottom Section: Services (full width) -->
+            <div class="w-full">
+                <section aria-labelledby="services-title">
+                    <div class="bg-white shadow sm:rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h2 id="services-title" class="text-lg leading-6 font-medium text-gray-900">
+                                Services
+                                {% if services %}
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ services|length }} total
+                                </span>
+                                {% endif %}
+                            </h2>
+                            {% if services %}
+                            <div class="mt-6 flow-root">
+                                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                    <div class="inline-block min-w-full py-2 align-middle">
+                                        <table class="min-w-full divide-y divide-gray-300">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP:Port</th>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country/ASN</th>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Banner</th>
+                                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HTTP</th>
+                                                    <th scope="col" class="relative px-3 py-3.5">
+                                                        <span class="sr-only">Actions</span>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200">
+                                                {% for service in services %}
+                                                <tr>
+                                                    <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {{ service.ip }}:{{ service.port }}
+                                                    </td>
+                                                    <td class="px-3 py-4 whitespace-nowrap">
+                                                        {% if service.fruit %}
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                                            {{ service.fruit.name }}
+                                                        </span>
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-3 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">{{ service.country or '-' }}</div>
+                                                        <div class="text-xs text-gray-500">{{ service.asn or '-' }}</div>
+                                                    </td>
+                                                    <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <div class="truncate w-36">{{ service.domain or '-' }}</div>
+                                                    </td>
+                                                    <td class="px-3 py-4 text-sm text-gray-500">
+                                                        {% if service.banner_data %}
+                                                        <div class="truncate w-36">{{ service.banner_data }}</div>
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-3 py-4 text-sm text-gray-500">
+                                                        {% if service.http_data %}
+                                                        <div class="truncate w-36">{{ service.http_data }}</div>
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <a href="/services/{{ service.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <p class="mt-4 text-sm text-gray-500">No services assigned to this owner.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>

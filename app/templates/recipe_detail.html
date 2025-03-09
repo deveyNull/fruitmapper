@@ -92,7 +92,12 @@
                     <section aria-labelledby="related-services">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="related-services" class="text-lg font-medium text-gray-900">Related Services</h2>
+                                <h2 id="related-services" class="text-lg font-medium text-gray-900">
+                                    Related Services
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if recipe.service_count > 0 %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ recipe.service_count }} service{% if recipe.service_count != 1 %}s{% endif %}
+                                    </span>
+                                </h2>
                                 <p class="mt-1 text-sm text-gray-500">Services associated with the fruits used in this recipe.</p>
                                 
                                 <div class="mt-4 overflow-x-auto">
@@ -180,6 +185,14 @@
                                     <div>
                                         <dt class="text-sm font-medium text-gray-500">Created</dt>
                                         <dd class="mt-1 text-sm text-gray-900">{{ recipe.created_at.strftime('%B %d, %Y') }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Associated Services</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if recipe.service_count > 0 %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {{ recipe.service_count }} service{% if recipe.service_count != 1 %}s{% endif %}
+                                            </span>
+                                        </dd>
                                     </div>
                                 </div>
                             </div>

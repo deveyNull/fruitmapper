@@ -45,6 +45,12 @@ async def list_recipes(
     # Get fruits for filter dropdown (instead of fruit types)
     fruits = crud.get_fruits(db).items
     
+    # Calculate service counts for each recipe
+    for recipe in recipes.items:
+        recipe.service_count = 0
+        for fruit in recipe.fruits:
+            recipe.service_count += len(fruit.services)
+    
     return templates.TemplateResponse(
         "recipes.html",
         {
@@ -77,7 +83,6 @@ async def list_recipes_api(
         fruit_id=fruit_id,  # Changed from fruit_type_id
         max_time=max_time
     )
-
 @router.get("/{recipe_id}", response_class=HTMLResponse)
 async def view_recipe(
     request: Request,
@@ -93,15 +98,16 @@ async def view_recipe(
             detail="Recipe not found"
         )
     
+    # Calculate the total service count
+    recipe.service_count = 0
+    for fruit in recipe.fruits:
+        recipe.service_count += len(fruit.services)
+    
     # Get available fruits for admin management (instead of fruit types)
     available_fruits = crud.get_fruits(db).items if current_user.is_admin else []
     
     # Check if there are any services associated with the recipe's fruits
-    has_services = False
-    for fruit in recipe.fruits:
-        if fruit.services and len(fruit.services) > 0:
-            has_services = True
-            break
+    has_services = recipe.service_count > 0
     
     return templates.TemplateResponse(
         "recipe_detail.html",

@@ -685,6 +685,27 @@ def remove_fruit_from_recipe(
     db.refresh(recipe)
     return recipe
 
+def get_recipe_service_count(db: Session, recipe_id: int) -> int:
+    """
+    Get the count of services associated with a recipe through its fruits.
+    
+    Args:
+        db: Database session
+        recipe_id: ID of the recipe
+        
+    Returns:
+        int: Count of associated services
+    """
+    recipe = get_recipe(db, recipe_id)
+    if not recipe:
+        return 0
+        
+    service_count = 0
+    for fruit in recipe.fruits:
+        service_count += len(fruit.services)
+        
+    return service_count
+
 def get_owner(db: Session, owner_id: int) -> Optional[Owner]:
     return db.query(Owner).filter(Owner.id == owner_id).first()
 

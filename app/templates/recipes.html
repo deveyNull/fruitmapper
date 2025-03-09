@@ -75,6 +75,9 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Fruits
                                     </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Services
+                                    </th>
                                     <th scope="col" class="relative px-6 py-3">
                                         <span class="sr-only">Actions</span>
                                     </th>
@@ -101,6 +104,12 @@
                                             </span>
                                             {% endfor %}
                                         </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <!-- Service Count Badge - Using the service_count field directly -->
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if recipe.service_count > 0 %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {{ recipe.service_count }} service{% if recipe.service_count != 1 %}s{% endif %}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <a href="/recipes/{{ recipe.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">View</a>

@@ -269,6 +269,7 @@ class RecipeResponse(RecipeBase):
     # Changed from fruit_types to fruits
     fruits: List[FruitResponse]
     created_at: datetime
+    service_count: Optional[int] = 0
 
     class Config:
         from_attributes = True
