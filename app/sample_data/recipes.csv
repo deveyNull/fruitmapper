@@ -2,7 +2,7 @@ name,description,instructions,preparation_time,fruits
 Fruit Salad,A refreshing mix of seasonal fruits,"1. Wash all fruits
 2. Cut into bite-sized pieces
 3. Mix in a large bowl
-4. Chill before serving",20,orange|strawberry|apple
+4. Chill before serving",20,orange|strawberry|apple|mongodb
 Citrus Punch,Refreshing summer drink,"1. Juice all citrus fruits
 2. Mix with water and sugar
 3. Chill and serve",15,orange|lemon

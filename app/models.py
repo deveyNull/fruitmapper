@@ -148,6 +148,19 @@ class Service(Base):
     fruit_type = relationship('FruitType', back_populates='services')
     owner = relationship('Owner', back_populates='services')
 
+    __table_args__ = (
+    Index('idx_service_fruit_id', 'fruit_id'),
+    Index('idx_service_owner_id', 'owner_id'),
+    Index('idx_service_ip_port', 'ip', 'port'),
+    Index('idx_service_banner', 'banner_data', postgresql_using='gin'),  # For PostgreSQL
+    # For SQLite, you'd need a different approach or a simple index
+    Index('idx_service_domain', 'domain'),
+    
+    # Indexes for filtering by country/ASN
+    Index('idx_service_country', 'country'),
+    Index('idx_service_asn', 'asn'),
+    )
+
     @validates('fruit')
     def validate_fruit(self, key, fruit):
         """Auto-update fruit_type_id when fruit is set"""
@@ -164,7 +177,6 @@ class Service(Base):
         # Call parent constructor
         super(Service, self).__init__(**kwargs)
 
-    #TODO this is where I should do Ownership by /24s and by domain+subdomain things. Obviously
     @validates('ip', 'domain')
     def validate_ownership_fields(self, key, value):
         if value:
@@ -217,8 +229,6 @@ class FruitType(Base):
     
     fruits = relationship('Fruit', back_populates='fruit_type')
     services = relationship('Service', back_populates='fruit_type')
-    # Remove the relationship to recipes
-    # recipes = relationship('Recipe', secondary=fruit_type_recipe, back_populates='fruit_types')
 
 class Fruit(Base):
     __tablename__ = 'fruits'
@@ -235,6 +245,11 @@ class Fruit(Base):
     # Add relationship to recipes
     recipes = relationship('Recipe', secondary=fruit_recipe, back_populates='fruits')
 
+    __table_args__ = (
+    Index('idx_fruit_type_id', 'fruit_type_id'),
+    Index('idx_fruit_name', 'name'),
+    )
+
 class Recipe(Base):
     __tablename__ = 'recipes'
     
@@ -247,6 +262,11 @@ class Recipe(Base):
     
     # Change relationship from fruit_types to fruits
     fruits = relationship('Fruit', secondary=fruit_recipe, back_populates='recipes')
+
+    __table_args__ = (
+    Index('idx_recipe_name', 'name'),
+    Index('idx_recipe_prep_time', 'preparation_time'),
+    )
 
 class SavedFilter(Base):
     __tablename__ = 'saved_filters'

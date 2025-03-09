@@ -456,7 +456,7 @@ def init_db():
     load_fruits('./sample_data/fruits.csv')
     load_recipes('./sample_data/recipes.csv')
     load_owners('./sample_data/owners.csv')
-    load_services('./sample_data/services.csv')
+    load_services('./sample_data/long_services.csv')
     auto_assign_ownership(session)
     auto_identify_services(session)
 

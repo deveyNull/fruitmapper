@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from io import StringIO
 import json
 
-from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner, OwnerIP, OwnerDomain
+from app.models import User, FruitType, Fruit, Recipe, Group, SavedFilter, Service, Owner, OwnerIP, OwnerDomain, fruit_recipe
 from passlib.hash import bcrypt
 from app import schemas
 from .schemas import ServiceList, ServiceResponse, OwnerList, OwnerResponse
@@ -75,7 +75,7 @@ def get_fruit_type(db: Session, fruit_type_id: int) -> Optional[FruitType]:
 def get_fruit_types(
     db: Session,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 20,
     search: Optional[str] = None
 ) -> schemas.FruitTypeList:
     query = db.query(
@@ -150,12 +150,25 @@ def get_fruit(db: Session, fruit_id: int) -> Optional[Fruit]:
 def get_fruits(
     db: Session,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 20,
     fruit_type_id: Optional[int] = None,
     country: Optional[str] = None,
     search: Optional[str] = None
 ) -> schemas.FruitList:
+    # First create a subquery to count services
+    service_count = db.query(
+        Service.fruit_id,
+        func.count(Service.id).label('service_count')
+    ).group_by(Service.fruit_id).subquery()
+    
+    # Create the base query for fruits
     query = db.query(Fruit)
+    
+    # Apply eager loading
+    query = query.options(
+        joinedload(Fruit.fruit_type),
+        joinedload(Fruit.services)
+    )
     
     # Apply filters
     if fruit_type_id:
@@ -169,23 +182,47 @@ def get_fruits(
         query = query.filter(
             or_(
                 Fruit.name.ilike(search_term),
-                Fruit.country_of_origin.ilike(search_term)
             )
         )
     
-    # Get total before pagination
+    # Get total count before pagination
     total = query.count()
     
     # Apply pagination
-    fruits = query.order_by(Fruit.name).offset(skip).limit(limit).all()
-    pages = (total + limit - 1) // limit
-
+    query = query.order_by(Fruit.name).offset(skip).limit(limit)
+    
+    # Execute the query to get fruits
+    fruits = query.all()
+    
+    # Now retrieve service counts for these specific fruits
+    fruit_ids = [fruit.id for fruit in fruits]
+    
+    # Get service counts in a separate query
+    counts = {}
+    if fruit_ids:
+        count_results = db.query(
+            Service.fruit_id,
+            func.count(Service.id).label('count')
+        ).filter(
+            Service.fruit_id.in_(fruit_ids)
+        ).group_by(Service.fruit_id).all()
+        
+        counts = {fruit_id: count for fruit_id, count in count_results}
+    
+    # Create response objects with service count
+    fruit_responses = []
+    for fruit in fruits:
+        fruit_response = schemas.FruitResponse.model_validate(fruit)
+        # Add service_count as an attribute (assuming you've added this field to FruitResponse)
+        setattr(fruit_response, 'service_count', counts.get(fruit.id, 0))
+        fruit_responses.append(fruit_response)
+    
     return schemas.FruitList(
-        items=[schemas.FruitResponse.model_validate(f) for f in fruits],
+        items=fruit_responses,
         total=total,
         page=skip // limit + 1,
         size=limit,
-        pages=pages
+        pages=(total + limit - 1) // limit
     )
 
 def get_fruits_by_type(
@@ -476,16 +513,24 @@ def get_recipe(db: Session, recipe_id: int) -> Optional[Recipe]:
 def get_recipes(
     db: Session,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 20,
     search: Optional[str] = None,
     fruit_id: Optional[int] = None,  # Changed from fruit_type_id to fruit_id
     max_time: Optional[int] = None
 ) -> schemas.RecipeList:
     """
-    Get recipes with optional filtering and search.
+    Get recipes with optional filtering and search, with optimized service counting.
     """
+    # Create base query
     query = db.query(Recipe)
     
+    # Apply eager loading for relationships
+    query = query.options(
+        joinedload(Recipe.fruits),  # Eager load fruits
+        joinedload(Recipe.fruits).joinedload(Fruit.fruit_type)  # Also load fruit types
+    )
+    
+    # Apply filters
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
@@ -502,16 +547,65 @@ def get_recipes(
     if max_time:
         query = query.filter(Recipe.preparation_time <= max_time)
     
+    # Get total count before pagination
     total = query.count()
+    
+    # Apply pagination and fetch recipes
     recipes = query.order_by(Recipe.name).offset(skip).limit(limit).all()
-    pages = (total + limit - 1) // limit
-
+    
+    # Get the recipe ids for service count calculation
+    recipe_ids = [recipe.id for recipe in recipes]
+    
+    # Compute service counts in a separate efficient query using subqueries
+    # This avoids the N+1 query problem
+    service_counts = {}
+    if recipe_ids:
+        # First get the fruits associated with each recipe
+        recipe_fruits = db.query(
+            fruit_recipe.c.recipe_id,
+            fruit_recipe.c.fruit_id
+        ).filter(
+            fruit_recipe.c.recipe_id.in_(recipe_ids)
+        ).all()
+        
+        # Group fruits by recipe
+        recipe_to_fruits = {}
+        for recipe_id, fruit_id in recipe_fruits:
+            if recipe_id not in recipe_to_fruits:
+                recipe_to_fruits[recipe_id] = []
+            recipe_to_fruits[recipe_id].append(fruit_id)
+        
+        # Get service counts for each fruit
+        all_fruit_ids = [fruit_id for fruit_ids in recipe_to_fruits.values() for fruit_id in fruit_ids]
+        if all_fruit_ids:
+            fruit_service_counts = db.query(
+                Service.fruit_id,
+                func.count(Service.id).label('count')
+            ).filter(
+                Service.fruit_id.in_(all_fruit_ids)
+            ).group_by(Service.fruit_id).all()
+            
+            # Map fruit IDs to service counts
+            fruit_to_service_count = {fruit_id: count for fruit_id, count in fruit_service_counts}
+            
+            # Calculate total service count for each recipe
+            for recipe_id, fruit_ids in recipe_to_fruits.items():
+                service_counts[recipe_id] = sum(fruit_to_service_count.get(fruit_id, 0) for fruit_id in fruit_ids)
+    
+    # Create response objects with service count
+    recipe_responses = []
+    for recipe in recipes:
+        recipe_response = schemas.RecipeResponse.model_validate(recipe)
+        # Add service_count as an attribute
+        setattr(recipe_response, 'service_count', service_counts.get(recipe.id, 0))
+        recipe_responses.append(recipe_response)
+    
     return schemas.RecipeList(
-        items=[schemas.RecipeResponse.model_validate(r) for r in recipes],
+        items=recipe_responses,
         total=total,
         page=skip // limit + 1,
         size=limit,
-        pages=pages
+        pages=(total + limit - 1) // limit
     )
 
 def get_recipe_count(db: Session) -> int:
@@ -964,7 +1058,7 @@ def get_services_by_fruit(
     db: Session,
     fruit_id: int,
     skip: int = 0,
-    limit: int = 100
+    limit: int = 20
 ) -> List[Service]:
     return (db.query(Service)
             .filter(Service.fruit_id == fruit_id)

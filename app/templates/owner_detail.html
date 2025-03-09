@@ -172,7 +172,7 @@
                                 <dl class="mt-4 grid grid-cols-1 gap-x-4 gap-y-8">
                                     <div class="sm:col-span-1">
                                         <dt class="text-sm font-medium text-gray-500">Total Services</dt>
-                                        <dd class="mt-1 text-sm text-gray-900">{{ services|length }}</dd>
+                                        <dd class="mt-1 text-sm text-gray-900"> {{ owner.services|length }} total</dd>
                                     </div>
                                     <div class="sm:col-span-1">
                                         <dt class="text-sm font-medium text-gray-500">IP Addresses</dt>
@@ -231,10 +231,13 @@
                         <div class="px-4 py-5 sm:p-6">
                             <h2 id="services-title" class="text-lg leading-6 font-medium text-gray-900">
                                 Services
-                                {% if services %}
+                                {% if owner.services %}
                                 <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    {{ services|length }} total
+                                    {{ owner.services|length }} total
                                 </span>
+                                <a href="/services/?owner_id={{ owner.id }}&page_size=20" class="ml-2 text-sm text-indigo-600 hover:text-indigo-900">
+                                    View all services →
+                                </a>
                                 {% endif %}
                             </h2>
                             {% if services %}

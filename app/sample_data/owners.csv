@@ -10,3 +10,6 @@ DataFlow Systems,Data analytics company,admin@dataflow-systems.com,192.168.4.0/2
 CloudScale,Cloud infrastructure provider,support@cloudscale.tech,172.17.0.0/16|192.168.5.10,cloudscale.tech|portal.cloudscale.tech
 DevHub,Developer tools and services,help@devhub.dev,10.40.0.0/24|192.168.6.25,devhub.dev|tools.devhub.dev
 ComputeEdge,Edge computing solutions,info@compute-edge.net,192.168.7.0/24|10.50.1.1,compute-edge.net|edge.compute-edge.net
+203.com,someone compute,f@chat.com,203.0.0.0/8, 
+211.com,someone compute,f2@chat.com,211.0.0.0/8, 
+47.org,someone compute,f23@chat.com,47.0.0.0/8, 

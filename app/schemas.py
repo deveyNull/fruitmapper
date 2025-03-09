@@ -231,6 +231,8 @@ class FruitResponse(FruitBase):
     id: int
     fruit_type: FruitTypeResponse
     services: List[ServiceResponseBase] = []
+    service_count: Optional[int] = 0  # Add this field
+
 
     class Config:
         from_attributes = True

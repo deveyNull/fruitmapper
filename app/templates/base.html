@@ -21,10 +21,7 @@
                     </div>
                     {% if request.user and request.user.is_authenticated %}
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="{{ url_for('list_services') }}"
-                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
-                            Services
-                        </a>
+                        
                         <a href="{{ url_for('list_owners') }}"
                            class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
                             Owners
@@ -41,11 +38,14 @@
                            class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
                             Fruit Types
                         </a>
-                        
-                        <a href="{{ url_for('list_groups') }}"
+                        <a href="{{ url_for('list_services') }}"
+                           class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/fruit-types' %}border-indigo-500{% else %}border-transparent{% endif %}">
+                            Services
+                        </a>
+                        <!-- <a href="{{ url_for('list_groups') }}"
                            class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 {% if request.url.path == '/groups' %}border-indigo-500{% else %}border-transparent{% endif %}">
                             Groups
-                        </a>
+                        </a> -->
                     </div>
                     {% endif %}
                     
