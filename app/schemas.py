@@ -151,7 +151,7 @@ class ServiceBase(BaseModel):
     country: Optional[str] = None
     domain: Optional[str] = None
     banner_data: Optional[str] = None
-    http_data: Optional[Dict[str, Any]] = None
+    http_data: Optional[str] = None  # Changed from Dict[str, Any] to str
     fruit_id: Optional[int] = None
     owner_id: Optional[int] = None
 
@@ -179,7 +179,7 @@ class ServiceUpdate(BaseModel):
     country: Optional[str] = None
     domain: Optional[str] = None
     banner_data: Optional[str] = None
-    http_data: Optional[Dict[str, Any]] = None
+    http_data: Optional[str] = None  # Changed from Dict[str, Any] to str
     fruit_id: Optional[int] = None
     owner_id: Optional[int] = None
 
@@ -204,7 +204,15 @@ class ServiceResponseBase(ServiceBase):
     timestamp: datetime
     created_at: datetime
     updated_at: datetime
-    owner: Optional[OwnerResponse] = None
+    owner: Optional['OwnerResponse'] = None
+
+    class Config:
+        from_attributes = True
+
+# ... [other schema definitions remain the same] ...
+
+class ServiceResponse(ServiceResponseBase):
+    fruit: Optional['FruitResponse'] = None
 
     class Config:
         from_attributes = True

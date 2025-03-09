@@ -100,21 +100,19 @@
                         </div>
                     </section>
 
-                    <!-- HTTP Data -->
-                    <section aria-labelledby="http-data">
+                    <!-- HTML Content -->
+                    {% if service.http_data %}
+                    <section aria-labelledby="html-content">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="http-data" class="text-lg leading-6 font-medium text-gray-900">HTTP Data</h2>
+                                <h2 id="html-content" class="text-lg leading-6 font-medium text-gray-900">HTML Content</h2>
                                 <div class="mt-4">
-                                    {% if service.http_data %}
-                                    <pre class="mt-2 p-4 bg-gray-50 rounded-md overflow-x-auto text-sm text-gray-700">{{ service.http_data | tojson(indent=2) }}</pre>
-                                    {% else %}
-                                    <p class="text-sm text-gray-500">No HTTP data available</p>
-                                    {% endif %}
+                                    <pre class="mt-2 p-4 bg-gray-50 rounded-md overflow-x-auto text-sm text-gray-700">{{ service.http_data }}</pre>
                                 </div>
                             </div>
                         </div>
                     </section>
+                    {% endif %}
                 </div>
 
                 <!-- Sidebar -->

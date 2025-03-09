@@ -62,13 +62,16 @@
                                         Type
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Match_Type
+                                        Match Type
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Match_Pattern
+                                        Match Pattern
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Date Added
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Matches
                                     </th>
                                     <th scope="col" class="relative px-6 py-3">
                                         <span class="sr-only">Actions</span>
@@ -97,6 +100,11 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ fruit.date_picked.strftime('%Y-%m-%d') }}
                                     </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            {{ fruit.services|length }} services
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <a href="/fruits/{{ fruit.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">View</a>
                                         {% if request.user.is_admin %}
@@ -114,26 +122,26 @@
 
         <!-- Pagination -->
         {% if fruits.total > fruits.size %}
-<div class="mt-4 flex items-center justify-between">
-    <div class="flex-1 flex justify-between">
-        {% if fruits.page > 1 %}
-        <a href="?page={{ fruits.page - 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
-           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            Previous
-        </a>
+        <div class="mt-4 flex items-center justify-between">
+            <div class="flex-1 flex justify-between">
+                {% if fruits.page > 1 %}
+                <a href="?page={{ fruits.page - 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                <span class="text-sm text-gray-700">
+                    Page {{ fruits.page }} of {{ fruits.pages }}
+                </span>
+                {% if fruits.page < fruits.pages %}
+                <a href="?page={{ fruits.page + 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
-        <span class="text-sm text-gray-700">
-            Page {{ fruits.page }} of {{ fruits.pages }}
-        </span>
-        {% if fruits.page < fruits.pages %}
-        <a href="?page={{ fruits.page + 1 }}{% if selected_type %}&fruit_type_id={{ selected_type }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if search %}&search={{ search }}{% endif %}" 
-           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            Next
-        </a>
-        {% endif %}
-    </div>
-</div>
-{% endif %}
     </div>
 </div>
 {% endblock %}
@@ -155,9 +163,9 @@
                 params.delete('fruit_type_id');
             }
             
-            if (countrySelect.value) {
+            if (countrySelect && countrySelect.value) {
                 params.set('country', countrySelect.value);
-            } else {
+            } else if (countrySelect) {
                 params.delete('country');
             }
             
@@ -174,7 +182,9 @@
         }
     
         fruitTypeSelect.addEventListener('change', updateFilters);
-        countrySelect.addEventListener('change', updateFilters);
+        if (countrySelect) {
+            countrySelect.addEventListener('change', updateFilters);
+        }
         
         // Debounce search input
         searchInput.addEventListener('input', function() {

@@ -89,7 +89,7 @@
     <!-- Flash Messages -->
     {% if messages %}
         {% for message in messages %}
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <div class="max-w-1xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
                 <div class="rounded-md p-4 {% if message.category == 'error' %}bg-red-50 text-red-800{% else %}bg-green-50 text-green-800{% endif %}">
                     <p class="text-sm font-medium">{{ message.message }}</p>
                 </div>
@@ -98,13 +98,13 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="max-w-1xl mx-auto py-6 sm:px-6 lg:px-8">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
     <footer class="bg-white shadow mt-8">
-        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-1xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-sm text-gray-500">
                 &copy; 2024 Fruit Recipe Platform. All rights reserved.
             </p>

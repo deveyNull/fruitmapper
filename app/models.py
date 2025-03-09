@@ -134,7 +134,8 @@ class Service(Base):
     domain = Column(String(255))
     timestamp = Column(DateTime, default=datetime.utcnow)
     banner_data = Column(Text)
-    http_data = Column(JSON)
+    # Change from JSON to Text type
+    http_data = Column(Text)  # Now stores HTML content directly
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -155,11 +156,9 @@ class Service(Base):
         return None
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Remove special handling for http_data
         if 'fruit' in kwargs and kwargs['fruit'] is not None:
-            self.fruit_type_id = kwargs['fruit'].fruit_type_id
-        if 'http_data' in kwargs and isinstance(kwargs['http_data'], dict):
-            kwargs['http_data'] = json.dumps(kwargs['http_data'])
+            kwargs['fruit_type_id'] = kwargs['fruit'].fruit_type_id
             
         # Call parent constructor
         super(Service, self).__init__(**kwargs)
