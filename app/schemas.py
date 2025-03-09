@@ -209,14 +209,7 @@ class ServiceResponseBase(ServiceBase):
     class Config:
         from_attributes = True
 
-# ... [other schema definitions remain the same] ...
-
-class ServiceResponse(ServiceResponseBase):
-    fruit: Optional['FruitResponse'] = None
-
-    class Config:
-        from_attributes = True
-
+# Fruit Models
 class FruitBase(BaseModel):
     name: str
     date_picked: datetime
@@ -252,11 +245,7 @@ class ServiceResponse(ServiceBasicResponse):
     class Config:
         from_attributes = True
 
-
-# Alias for backwards compatibility
-Fruit = FruitResponse
-
-# Recipe Models
+# Recipe Models - Changed to reference fruits instead of fruit_types
 class RecipeBase(BaseModel):
     name: str
     description: str
@@ -264,18 +253,21 @@ class RecipeBase(BaseModel):
     preparation_time: int
 
 class RecipeCreate(RecipeBase):
-    fruit_type_ids: List[int]
+    # Changed from fruit_type_ids to fruit_ids
+    fruit_ids: List[int]
 
 class RecipeUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     instructions: Optional[str] = None
     preparation_time: Optional[int] = None
-    fruit_type_ids: Optional[List[int]] = None
+    # Changed from fruit_type_ids to fruit_ids
+    fruit_ids: Optional[List[int]] = None
 
 class RecipeResponse(RecipeBase):
     id: int
-    fruit_types: List[FruitTypeResponse]
+    # Changed from fruit_types to fruits
+    fruits: List[FruitResponse]
     created_at: datetime
 
     class Config:

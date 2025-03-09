@@ -216,6 +216,7 @@ def load_recipes(filename):
     """Load recipes from CSV file"""
     with open(filename, 'r') as f:
         reader = csv.DictReader(f)
+        count = 0
         for row in reader:
             recipe = Recipe(
                 name=row['name'],
@@ -223,17 +224,21 @@ def load_recipes(filename):
                 instructions=row['instructions'],
                 preparation_time=int(row['preparation_time'])
             )
-            # Add fruit types to recipe
-            fruit_types = row['fruit_types'].split('|')
-            for ft_name in fruit_types:
-                fruit_type = session.query(FruitType).filter_by(name=ft_name.strip()).first()
-                if fruit_type:
-                    recipe.fruit_types.append(fruit_type)
+            
+            # Changed from fruit_types to fruits
+            fruits = row['fruits'].split('|')
+            for fruit_name in fruits:
+                fruit = session.query(Fruit).filter_by(name=fruit_name.strip()).first()
+                if fruit:
+                    recipe.fruits.append(fruit)
                 else:
-                    print(f"Warning: Fruit type {ft_name} not found")
+                    print(f"Warning: Fruit {fruit_name} not found")
             
             session.add(recipe)
+            count += 1
+    
     session.commit()
+    print(f"Loaded {count} recipes from {filename}")
 
 def auto_assign_ownership(session):
     """
@@ -440,6 +445,7 @@ def create_admin_user():
         is_admin=True
     )
     session.add(admin)
+    
 def init_db():
     """Initialize database with sample data"""
     # Create admin user
@@ -447,14 +453,12 @@ def init_db():
     
     # Load sample data
     load_fruit_types('./sample_data/fruit_types.csv')
+    load_fruits('./sample_data/fruits.csv')
     load_recipes('./sample_data/recipes.csv')
     load_owners('./sample_data/owners.csv')
-    load_fruits('./sample_data/fruits.csv')
     load_services('./sample_data/services.csv')
     auto_assign_ownership(session)
     auto_identify_services(session)
-
-
 
 if __name__ == '__main__':
     init_db()

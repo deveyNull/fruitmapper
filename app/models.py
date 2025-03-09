@@ -14,10 +14,11 @@ import re
 Base = declarative_base()
 
 # Association tables
-fruit_type_recipe = Table(
-    'fruit_type_recipe',
+# Replace fruit_type_recipe with fruit_recipe
+fruit_recipe = Table(
+    'fruit_recipe',
     Base.metadata,
-    Column('fruit_type_id', Integer, ForeignKey('fruit_types.id')),
+    Column('fruit_id', Integer, ForeignKey('fruits.id')),
     Column('recipe_id', Integer, ForeignKey('recipes.id'))
 )
 
@@ -215,8 +216,9 @@ class FruitType(Base):
     description = Column(String(200))
     
     fruits = relationship('Fruit', back_populates='fruit_type')
-    services = relationship('Service', back_populates='fruit_type')  # Add this
-    recipes = relationship('Recipe', secondary=fruit_type_recipe, back_populates='fruit_types')
+    services = relationship('Service', back_populates='fruit_type')
+    # Remove the relationship to recipes
+    # recipes = relationship('Recipe', secondary=fruit_type_recipe, back_populates='fruit_types')
 
 class Fruit(Base):
     __tablename__ = 'fruits'
@@ -230,6 +232,8 @@ class Fruit(Base):
     
     fruit_type = relationship('FruitType', back_populates='fruits')
     services = relationship('Service', back_populates='fruit')
+    # Add relationship to recipes
+    recipes = relationship('Recipe', secondary=fruit_recipe, back_populates='fruits')
 
 class Recipe(Base):
     __tablename__ = 'recipes'
@@ -241,7 +245,8 @@ class Recipe(Base):
     preparation_time = Column(Integer)  # in minutes
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    fruit_types = relationship('FruitType', secondary=fruit_type_recipe, back_populates='recipes')
+    # Change relationship from fruit_types to fruits
+    fruits = relationship('Fruit', secondary=fruit_recipe, back_populates='recipes')
 
 class SavedFilter(Base):
     __tablename__ = 'saved_filters'

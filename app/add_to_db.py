@@ -60,25 +60,27 @@ def load_recipes(filename):
                 instructions=row['instructions'],
                 preparation_time=int(row['preparation_time'])
             )
-            # Add fruit types to recipe
-            fruit_types = row['fruit_types'].split('|')
-            for ft_name in fruit_types:
-                fruit_type = session.query(FruitType).filter_by(name=ft_name.strip()).first()
-                if fruit_type:
-                    recipe.fruit_types.append(fruit_type)
+            
+            # Changed from fruit_types to fruits
+            # First get the fruit names from the pipe-delimited list
+            fruit_names = row['fruits'].split('|')
+            
+            # Add fruits to recipe
+            for fruit_name in fruit_names:
+                fruit = session.query(Fruit).filter_by(name=fruit_name.strip()).first()
+                if fruit:
+                    recipe.fruits.append(fruit)
                 else:
-                    print(f"Warning: Fruit type {ft_name} not found")
+                    print(f"Warning: Fruit {fruit_name} not found")
             
             session.add(recipe)
     session.commit()
 
 def init_db():    
     # Load new data
-    #load_fruit_types('./sample_data/fruit_types.csv')
+    load_fruit_types('./sample_data/fruit_types.csv')
     load_fruits('./sample_data/new_fruits.csv')
-    #load_recipes('./sample_data/recipes.csv')
-
-
+    load_recipes('./sample_data/recipes.csv')
 
 if __name__ == '__main__':
     init_db()

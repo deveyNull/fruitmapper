@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 async def list_recipes(
     request: Request,
-    fruit_type_id: Optional[int] = None,
+    fruit_id: Optional[int] = None,  # Changed from fruit_type_id
     max_time: Optional[int] = None,
     search: Optional[str] = None,
     page: int = 1,
@@ -30,7 +30,7 @@ async def list_recipes(
 
     # Convert max_time to integer if provided
     max_time = int(max_time) if max_time else None
-    fruit_type_id = int(fruit_type_id) if fruit_type_id else None
+    fruit_id = int(fruit_id) if fruit_id else None
     
     # Get recipes with filters
     recipes = crud.get_recipes(
@@ -38,20 +38,20 @@ async def list_recipes(
         skip=skip,
         limit=page_size,
         search=search,
-        fruit_type_id=fruit_type_id,
+        fruit_id=fruit_id,  # Changed from fruit_type_id
         max_time=max_time
     )
     
-    # Get fruit types for filter dropdown
-    fruit_types = crud.get_fruit_types(db).items
+    # Get fruits for filter dropdown (instead of fruit types)
+    fruits = crud.get_fruits(db).items
     
     return templates.TemplateResponse(
         "recipes.html",
         {
             "request": request,
             "recipes": recipes,
-            "fruit_types": fruit_types,
-            "selected_type": fruit_type_id,
+            "fruits": fruits,  # Changed from fruit_types
+            "selected_fruit": fruit_id,  # Changed from selected_type
             "max_time": max_time,
             "search": search,
             "current_user": current_user
@@ -63,7 +63,7 @@ async def list_recipes_api(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    fruit_type_id: Optional[int] = None,
+    fruit_id: Optional[int] = None,  # Changed from fruit_type_id
     max_time: Optional[int] = None,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -74,7 +74,7 @@ async def list_recipes_api(
         skip=skip,
         limit=limit,
         search=search,
-        fruit_type_id=fruit_type_id,
+        fruit_id=fruit_id,  # Changed from fruit_type_id
         max_time=max_time
     )
 
@@ -93,8 +93,15 @@ async def view_recipe(
             detail="Recipe not found"
         )
     
-    # Get available fruit types for admin management
-    available_fruit_types = crud.get_fruit_types(db).items if current_user.is_admin else []
+    # Get available fruits for admin management (instead of fruit types)
+    available_fruits = crud.get_fruits(db).items if current_user.is_admin else []
+    
+    # Check if there are any services associated with the recipe's fruits
+    has_services = False
+    for fruit in recipe.fruits:
+        if fruit.services and len(fruit.services) > 0:
+            has_services = True
+            break
     
     return templates.TemplateResponse(
         "recipe_detail.html",
@@ -102,7 +109,8 @@ async def view_recipe(
             "request": request,
             "recipe": recipe,
             "current_user": current_user,
-            "available_fruit_types": available_fruit_types
+            "available_fruits": available_fruits,  # Changed from available_fruit_types
+            "has_services": has_services
         }
     )
 
@@ -115,12 +123,12 @@ async def create_recipe(
     """
     Create a new recipe (admin only).
     """
-    # Verify fruit types exist
-    for type_id in recipe.fruit_type_ids:
-        if not crud.get_fruit_type(db, type_id):
+    # Verify fruits exist
+    for fruit_id in recipe.fruit_ids:  # Changed from recipe.fruit_type_ids
+        if not crud.get_fruit(db, fruit_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Fruit type with id {type_id} not found"
+                detail=f"Fruit with id {fruit_id} not found"
             )
     
     # Check if recipe name already exists
@@ -166,13 +174,13 @@ async def update_recipe(
             detail="Recipe not found"
         )
     
-    # Verify fruit types if provided
-    if recipe_update.fruit_type_ids:
-        for type_id in recipe_update.fruit_type_ids:
-            if not crud.get_fruit_type(db, type_id):
+    # Verify fruits if provided
+    if recipe_update.fruit_ids:  # Changed from recipe_update.fruit_type_ids
+        for fruit_id in recipe_update.fruit_ids:
+            if not crud.get_fruit(db, fruit_id):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Fruit type with id {type_id} not found"
+                    detail=f"Fruit with id {fruit_id} not found"
                 )
     
     # Check name uniqueness if name is being updated
@@ -232,42 +240,42 @@ async def upload_recipes(
             detail=str(e)
         )
 
-@router.post("/{recipe_id}/fruit-types/{type_id}")
-async def add_fruit_type_to_recipe(
+@router.post("/{recipe_id}/fruits/{fruit_id}")  # Changed from fruit-types to fruits
+async def add_fruit_to_recipe(  # Changed from add_fruit_type_to_recipe
     recipe_id: int,
-    type_id: int,
+    fruit_id: int,  # Changed from type_id
     current_user: schemas.UserResponse = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Add a fruit type to a recipe (admin only).
+    Add a fruit to a recipe (admin only).
     """
     recipe = crud.get_recipe(db, recipe_id)
-    fruit_type = crud.get_fruit_type(db, type_id)
+    fruit = crud.get_fruit(db, fruit_id)  # Changed from fruit_type
     
-    if not recipe or not fruit_type:
+    if not recipe or not fruit:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recipe or fruit type not found"
+            detail="Recipe or fruit not found"  # Changed from "Recipe or fruit type not found"
         )
     
-    if fruit_type in recipe.fruit_types:
+    if fruit in recipe.fruits:  # Changed from fruit_types
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This fruit type is already associated with the recipe"
+            detail="This fruit is already associated with the recipe"  # Changed from "fruit type"
         )
     
-    return crud.add_fruit_type_to_recipe(db, recipe_id, type_id)
+    return crud.add_fruit_to_recipe(db, recipe_id, fruit_id)  # Changed function name
 
-@router.delete("/{recipe_id}/fruit-types/{type_id}")
-async def remove_fruit_type_from_recipe(
+@router.delete("/{recipe_id}/fruits/{fruit_id}")  # Changed from fruit-types to fruits
+async def remove_fruit_from_recipe(  # Changed from remove_fruit_type_from_recipe
     recipe_id: int,
-    type_id: int,
+    fruit_id: int,  # Changed from type_id
     current_user: schemas.UserResponse = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Remove a fruit type from a recipe (admin only).
+    Remove a fruit from a recipe (admin only).
     """
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
@@ -276,16 +284,16 @@ async def remove_fruit_type_from_recipe(
             detail="Recipe not found"
         )
     
-    if len(recipe.fruit_types) <= 1:
+    if len(recipe.fruits) <= 1:  # Changed from fruit_types
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot remove the last fruit type from a recipe"
+            detail="Cannot remove the last fruit from a recipe"  # Changed from "fruit type"
         )
     
-    return crud.remove_fruit_type_from_recipe(db, recipe_id, type_id)
+    return crud.remove_fruit_from_recipe(db, recipe_id, fruit_id)  # Changed function name
 
-@router.get("/by-fruit/{fruit_id}", response_model=List[schemas.RecipeResponse])
-async def get_recipes_by_fruit(
+@router.get("/by-fruit/{fruit_id}", response_model=List[schemas.RecipeResponse])  # Changed from by-fruit-type to by-fruit
+async def get_recipes_by_fruit(  # Changed from get_recipes_by_fruit_type
     fruit_id: int,
     current_user: schemas.UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -300,4 +308,4 @@ async def get_recipes_by_fruit(
             detail="Fruit not found"
         )
     
-    return crud.get_recipes_by_fruit_type(db, fruit.fruit_type_id)
+    return crud.get_recipes_by_fruit(db, fruit_id)  # Changed function name

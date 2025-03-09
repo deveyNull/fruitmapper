@@ -478,7 +478,7 @@ def get_recipes(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    fruit_type_id: Optional[int] = None,
+    fruit_id: Optional[int] = None,  # Changed from fruit_type_id to fruit_id
     max_time: Optional[int] = None
 ) -> schemas.RecipeList:
     """
@@ -495,8 +495,9 @@ def get_recipes(
             )
         )
     
-    if fruit_type_id:
-        query = query.filter(Recipe.fruit_types.any(FruitType.id == fruit_type_id))
+    if fruit_id:
+        # Changed to filter by fruit instead of fruit type
+        query = query.filter(Recipe.fruits.any(Fruit.id == fruit_id))
     
     if max_time:
         query = query.filter(Recipe.preparation_time <= max_time)
@@ -534,28 +535,155 @@ def get_filter_count(db: Session, username: str) -> int:
     print(f"Found {count} filters")  # Debug output
     return count
 
-def get_recipes_by_fruit_type(
+def get_recipes_by_fruit(
     db: Session,
-    fruit_type_id: int,
+    fruit_id: int,
     skip: int = 0,
     limit: int = 100
 ) -> List[Recipe]:
     """
-    Get all recipes that use a specific fruit type.
-    Returns a list of recipes that include this fruit type.
+    Get all recipes that use a specific fruit.
+    Returns a list of recipes that include this fruit.
     """
-    # Verify fruit type exists
-    fruit_type = get_fruit_type(db, fruit_type_id)
-    if not fruit_type:
-        raise HTTPException(404, "Fruit type not found")
+    # Verify fruit exists
+    fruit = get_fruit(db, fruit_id)
+    if not fruit:
+        raise HTTPException(404, "Fruit not found")
     
-    # Query recipes that include this fruit type
+    # Query recipes that include this fruit
     query = db.query(Recipe).filter(
-        Recipe.fruit_types.any(FruitType.id == fruit_type_id)
+        Recipe.fruits.any(Fruit.id == fruit_id)
     )
     
     recipes = query.offset(skip).limit(limit).all()
     return recipes
+
+def create_recipe(db: Session, recipe: schemas.RecipeCreate) -> Recipe:
+    """
+    Create a new recipe with associated fruits.
+    """
+    # Verify fruits exist
+    for fruit_id in recipe.fruit_ids:
+        if not get_fruit(db, fruit_id):
+            raise HTTPException(status_code=404, detail=f"Fruit with id {fruit_id} not found")
+    
+    # Create recipe without fruits first
+    db_recipe = Recipe(
+        name=recipe.name,
+        description=recipe.description,
+        instructions=recipe.instructions,
+        preparation_time=recipe.preparation_time
+    )
+    db.add(db_recipe)
+    db.commit()
+    db.refresh(db_recipe)
+    
+    # Add fruits to recipe
+    for fruit_id in recipe.fruit_ids:
+        fruit = db.query(Fruit).get(fruit_id)
+        db_recipe.fruits.append(fruit)
+    
+    db.commit()
+    db.refresh(db_recipe)
+    return db_recipe
+
+def update_recipe(
+    db: Session,
+    recipe_id: int,
+    recipe_update: schemas.RecipeUpdate
+) -> Recipe:
+    """
+    Update an existing recipe and its fruit associations.
+    """
+    db_recipe = get_recipe(db, recipe_id)
+    if not db_recipe:
+        raise HTTPException(404, "Recipe not found")
+    
+    # Update recipe fields
+    update_data = recipe_update.dict(exclude_unset=True)
+    fruit_ids = update_data.pop("fruit_ids", None)
+    
+    for field, value in update_data.items():
+        setattr(db_recipe, field, value)
+    
+    # Update fruit associations if provided
+    if fruit_ids is not None:
+        # Verify all fruits exist
+        for fruit_id in fruit_ids:
+            if not get_fruit(db, fruit_id):
+                raise HTTPException(status_code=404, detail=f"Fruit with id {fruit_id} not found")
+        
+        # Clear existing associations and add new ones
+        db_recipe.fruits = []
+        for fruit_id in fruit_ids:
+            fruit = db.query(Fruit).get(fruit_id)
+            db_recipe.fruits.append(fruit)
+    
+    db.commit()
+    db.refresh(db_recipe)
+    return db_recipe
+
+def delete_recipe(db: Session, recipe_id: int) -> bool:
+    recipe = get_recipe(db, recipe_id)
+    if recipe:
+        db.delete(recipe)
+        db.commit()
+        return True
+    return False
+
+def add_fruit_to_recipe(
+    db: Session,
+    recipe_id: int,
+    fruit_id: int
+) -> Recipe:
+    """
+    Add a fruit to a recipe.
+    """
+    recipe = get_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(404, "Recipe not found")
+    
+    fruit = get_fruit(db, fruit_id)
+    if not fruit:
+        raise HTTPException(404, "Fruit not found")
+    
+    # Check if fruit is already associated with recipe
+    if fruit in recipe.fruits:
+        raise HTTPException(400, "Fruit already associated with recipe")
+    
+    recipe.fruits.append(fruit)
+    db.commit()
+    db.refresh(recipe)
+    return recipe
+
+def remove_fruit_from_recipe(
+    db: Session,
+    recipe_id: int,
+    fruit_id: int
+) -> Recipe:
+    """
+    Remove a fruit from a recipe.
+    """
+    recipe = get_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(404, "Recipe not found")
+    
+    fruit = get_fruit(db, fruit_id)
+    if not fruit:
+        raise HTTPException(404, "Fruit not found")
+    
+    # Check if fruit is associated with recipe
+    if fruit not in recipe.fruits:
+        raise HTTPException(400, "Fruit not associated with recipe")
+    
+    # Make sure we're not removing the last fruit
+    if len(recipe.fruits) <= 1:
+        raise HTTPException(400, "Cannot remove the last fruit from a recipe")
+    
+    recipe.fruits.remove(fruit)
+    db.commit()
+    db.refresh(recipe)
+    return recipe
 
 def get_owner(db: Session, owner_id: int) -> Optional[Owner]:
     return db.query(Owner).filter(Owner.id == owner_id).first()

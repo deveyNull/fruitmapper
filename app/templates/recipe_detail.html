@@ -68,24 +68,86 @@
                         </div>
                     </section>
 
-                    <!-- Compatible Fruits Card -->
+                    <!-- Compatible Fruits Card - Changed from Compatible Fruit Types -->
                     <section aria-labelledby="compatible-fruits">
                         <div class="bg-white shadow sm:rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h2 id="compatible-fruits" class="text-lg font-medium text-gray-900">Compatible Fruits</h2>
+                                <h2 id="compatible-fruits" class="text-lg font-medium text-gray-900">Recipe Ingredients</h2>
                                 <div class="mt-4">
-                                    {% for type in recipe.fruit_types %}
+                                    <!-- Changed from iterating over fruit_types to fruits -->
+                                    {% for fruit in recipe.fruits %}
                                     <div class="mb-4">
-                                        <h3 class="text-sm font-medium text-gray-900">{{ type.name }}</h3>
-                                        <div class="mt-2 flex flex-wrap gap-2">
-                                            {% for fruit in type.fruits %}
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                {{ fruit.name }}
-                                            </span>
-                                            {% endfor %}
+                                        <div class="flex justify-between items-center">
+                                            <h3 class="text-sm font-medium text-gray-900">{{ fruit.name }}</h3>
+                                            <span class="text-xs text-gray-500">{{ fruit.fruit_type.name }}</span>
                                         </div>
                                     </div>
                                     {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Services Associated with Recipe Fruits -->
+                    <section aria-labelledby="related-services">
+                        <div class="bg-white shadow sm:rounded-lg">
+                            <div class="px-4 py-5 sm:p-6">
+                                <h2 id="related-services" class="text-lg font-medium text-gray-900">Related Services</h2>
+                                <p class="mt-1 text-sm text-gray-500">Services associated with the fruits used in this recipe.</p>
+                                
+                                <div class="mt-4 overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP:Port</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fruit</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+                                                <th scope="col" class="relative px-6 py-3">
+                                                    <span class="sr-only">Actions</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            {% for fruit in recipe.fruits %}
+                                                {% for service in fruit.services %}
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {{ service.ip }}:{{ service.port }}
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                                            {{ fruit.name }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {% if service.owner %}
+                                                        <a href="/owners/{{ service.owner.id }}" class="text-indigo-600 hover:text-indigo-900">
+                                                            {{ service.owner.name }}
+                                                        </a>
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {{ service.domain or '-' }}
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <a href="/services/{{ service.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            {% endfor %}
+                                            
+                                            {% if not has_services %}
+                                            <tr>
+                                                <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                    No services associated with this recipe's ingredients.
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -105,11 +167,12 @@
                                         <dd class="mt-1 text-sm text-gray-900">{{ recipe.preparation_time }} minutes</dd>
                                     </div>
                                     <div>
-                                        <dt class="text-sm font-medium text-gray-500">Fruit Types</dt>
+                                        <dt class="text-sm font-medium text-gray-500">Fruits</dt>
+                                        <!-- Changed from fruit_types to fruits -->
                                         <dd class="mt-1 flex flex-wrap gap-2">
-                                            {% for type in recipe.fruit_types %}
+                                            {% for fruit in recipe.fruits %}
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                {{ type.name }}
+                                                {{ fruit.name }}
                                             </span>
                                             {% endfor %}
                                         </dd>
@@ -131,9 +194,9 @@
                                 <div class="mt-4 space-y-4">
                                     {% if request.user.is_admin %}
                                     <button type="button"
-                                            onclick="manageFruitTypes()"
+                                            onclick="manageFruits()"
                                             class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                        Manage Fruit Types
+                                        Manage Fruits
                                     </button>
                                     <button type="button"
                                             onclick="confirmDelete()"
@@ -196,35 +259,38 @@
     </div>
 </div>
 
-<!-- Manage Fruit Types Modal -->
-<div id="fruitTypesModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+<!-- Manage Fruits Modal - Changed from Fruit Types -->
+<div id="fruitsModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Manage Fruit Types</h3>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Manage Recipe Fruits</h3>
             <div class="mt-4 space-y-4">
                 <div>
-                    <label for="fruit_type" class="block text-sm font-medium text-gray-700">Add Fruit Type</label>
+                    <label for="fruit" class="block text-sm font-medium text-gray-700">Add Fruit</label>
                     <div class="mt-1 flex rounded-md shadow-sm">
-                        <select id="fruit_type" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            {% for type in available_fruit_types %}
-                            <option value="{{ type.id }}">{{ type.name }}</option>
+                        <select id="fruit" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            {% for fruit in available_fruits %}
+                            <option value="{{ fruit.id }}">{{ fruit.name }} ({{ fruit.fruit_type.name }})</option>
                             {% endfor %}
                         </select>
                         <button type="button"
-                                onclick="addFruitType()"
+                                onclick="addFruit()"
                                 class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 sm:text-sm">
                             Add
                         </button>
                     </div>
                 </div>
                 <div>
-                    <h4 class="text-sm font-medium text-gray-700">Current Fruit Types</h4>
-                    <div class="mt-2 divide-y divide-gray-200" id="fruitTypesList">
-                        {% for type in recipe.fruit_types %}
+                    <h4 class="text-sm font-medium text-gray-700">Current Recipe Fruits</h4>
+                    <div class="mt-2 divide-y divide-gray-200" id="fruitsList">
+                        {% for fruit in recipe.fruits %}
                         <div class="py-3 flex justify-between items-center">
-                            <span class="text-sm text-gray-900">{{ type.name }}</span>
+                            <div>
+                                <span class="text-sm text-gray-900">{{ fruit.name }}</span>
+                                <span class="ml-2 text-xs text-gray-500">({{ fruit.fruit_type.name }})</span>
+                            </div>
                             <button type="button"
-                                    onclick="removeFruitType('{{ type.id }}')"
+                                    onclick="removeFruit('{{ fruit.id }}')"
                                     class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
                                 Remove
                             </button>
@@ -236,7 +302,7 @@
         </div>
         <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
             <button type="button"
-                    onclick="closeModal('fruitTypesModal')"
+                    onclick="closeModal('fruitsModal')"
                     class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                 Done
             </button>
@@ -253,66 +319,69 @@ function editRecipe() {
     document.getElementById('editRecipeModal').classList.remove('hidden');
 }
 
-function manageFruitTypes() {
-    loadFruitTypes();
-    document.getElementById('fruitTypesModal').classList.remove('hidden');
+function manageFruits() {
+    loadFruits();
+    document.getElementById('fruitsModal').classList.remove('hidden');
 }
 
 function closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden');
 }
 
-function addFruitType() {
-    const typeId = document.getElementById('fruit_type').value;
-    fetch(`/api/v1/recipes/{{ recipe.id }}/fruit-types/${typeId}`, {
+function addFruit() {
+    const fruitId = document.getElementById('fruit').value;
+    fetch(`/api/v1/recipes/{{ recipe.id }}/fruits/${fruitId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         }
     }).then(response => {
         if (response.ok) {
-            loadFruitTypes();
+            loadFruits();
         } else {
-            alert('Failed to add fruit type');
+            alert('Failed to add fruit');
         }
     });
 }
 
-function removeFruitType(typeId) {
-    // Prevent removing the last fruit type
-    const currentTypes = document.querySelectorAll('#fruitTypesList > div').length;
-    if (currentTypes <= 1) {
-        alert('Cannot remove the last fruit type. A recipe must have at least one fruit type.');
+function removeFruit(fruitId) {
+    // Prevent removing the last fruit
+    const currentFruits = document.querySelectorAll('#fruitsList > div').length;
+    if (currentFruits <= 1) {
+        alert('Cannot remove the last fruit. A recipe must have at least one fruit.');
         return;
     }
 
-    fetch(`/api/v1/recipes/{{ recipe.id }}/fruit-types/${typeId}`, {
+    fetch(`/api/v1/recipes/{{ recipe.id }}/fruits/${fruitId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
         }
     }).then(response => {
         if (response.ok) {
-            loadFruitTypes();
+            loadFruits();
         } else {
-            alert('Failed to remove fruit type');
+            alert('Failed to remove fruit');
         }
     });
 }
 
-function loadFruitTypes() {
-    fetch(`/api/v1/recipes/{{ recipe.id }}/fruit-types`)
+function loadFruits() {
+    fetch(`/api/v1/recipes/{{ recipe.id }}/fruits`)
         .then(response => response.json())
-        .then(types => {
-            const list = document.getElementById('fruitTypesList');
+        .then(fruits => {
+            const list = document.getElementById('fruitsList');
             list.innerHTML = '';
-            types.forEach(type => {
+            fruits.forEach(fruit => {
                 const div = document.createElement('div');
                 div.className = 'py-3 flex justify-between items-center';
                 div.innerHTML = `
-                    <span class="text-sm text-gray-900">${type.name}</span>
+                    <div>
+                        <span class="text-sm text-gray-900">${fruit.name}</span>
+                        <span class="ml-2 text-xs text-gray-500">(${fruit.fruit_type.name})</span>
+                    </div>
                     <button type="button"
-                            onclick="removeFruitType('${type.id}')"
+                            onclick="removeFruit('${fruit.id}')"
                             class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
                         Remove
                     </button>
